@@ -1,5 +1,6 @@
 // Podium screen: confetti for the champion, rain clouds for everybody else.
 import { drawCar } from './cars.js';
+import { theme } from './theme.js';
 import { Confetti } from './confetti.js';
 
 const W = 1280, H = 720, TAU = Math.PI * 2;
@@ -95,7 +96,7 @@ export function showResults({ canvas, standings, track }) {
     g.fillStyle = '#f6ecd6'; g.fillText(label, 0, 2);
     g.restore();
     g.font = '600 20px "Barlow Semi Condensed", sans-serif'; g.fillStyle = '#f6ecd6';
-    g.fillText(`wins the Wally Cup at ${track.name}!`, px, pBase + 140);
+    g.fillText(`wins the ${theme.cupName} at ${track.name}!`, px, pBase + 140);
 
     // losers (sad!)
     const n = losers.length;

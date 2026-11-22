@@ -1,22 +1,21 @@
 // Tournament mode: setup, bracket screen, match flow, export, champion celebration.
-import { CARS, TRACKS } from './data.js';
+import { theme, factFor } from './theme.js';
 import { buildBracket, isReady, nextReady, recordResult, roundCount, validateTournament } from './bracket.js';
 import { loadTournament, saveTournament, clearTournament, downloadFile } from './storage.js';
 import { startRace } from './race.js';
 import { TOURNEY_CONFIG } from './sim.js';
 import { showChampion } from './champion.js';
-import { factFor } from './facts.js';
 import { sfx } from './sound.js';
 import { announcer, LINES } from './announcer.js';
 
 const $ = (id) => document.getElementById(id);
-const car = (id) => CARS.find((c) => c.id === id);
-const track = (id) => TRACKS.find((t) => t.id === id);
+const car = (id) => theme.CARS.find((c) => c.id === id);
+const track = (id) => theme.TRACKS.find((t) => t.id === id);
 const dotColor = (c) => (c.color === '#26262b' ? '#6b6f80' : c.color);
 
 export function initTournament({ show, setRaceRun, setResultRun }) {
   let t = loadTournament();
-  let picks = new Set(CARS.map((c) => c.id));
+  let picks = new Set(theme.CARS.map((c) => c.id));
   let current = null;      // match on the race screen
   let confirmTimer = 0;
 
@@ -24,7 +23,7 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
   function renderSetup() {
     const wrap = $('tRoster');
     wrap.innerHTML = '';
-    for (const c of CARS) {
+    for (const c of theme.CARS) {
       const b = document.createElement('button');
       b.className = 't-chip' + (picks.has(c.id) ? ' on' : '');
       b.setAttribute('aria-pressed', picks.has(c.id));
@@ -59,7 +58,7 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
       for (const m of ms) {
         const el = document.createElement(isReady(m) ? 'button' : 'div');
         el.className = 'match' + (isReady(m) ? ' ready' : '') + (m.bye ? ' bye' : '') + (r === t.rounds.length - 1 ? ' final' : '');
-        el.innerHTML = `<div class="trk">${r === t.rounds.length - 1 ? '🌈 ' : ''}${track(m.track).name}</div>${side(m, m.a)}${side(m, m.b)}${isReady(m) ? '<span class="go">RACE!</span>' : ''}`;
+        el.innerHTML = `<div class="trk">${r === t.rounds.length - 1 ? theme.finalIcon + ' ' : ''}${track(m.track).name}</div>${side(m, m.a)}${side(m, m.b)}${isReady(m) ? '<span class="go">RACE!</span>' : ''}`;
         if (isReady(m)) el.addEventListener('click', () => openModal(m));
         list.appendChild(el);
       }
@@ -86,7 +85,7 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
     current = m;
     const isFinal = m.round === roundCount(t) - 1;
     m._hype = hypeText(m);
-    $('mmRound').textContent = isFinal ? '🌈 THE CHAMPIONSHIP 🌈' : `${LINES.roundName(m.round, roundCount(t))} · Match ${m.index + 1}`;
+    $('mmRound').textContent = isFinal ? `${theme.finalIcon} THE CHAMPIONSHIP ${theme.finalIcon}` : `${LINES.roundName(m.round, roundCount(t))} · Match ${m.index + 1}`;
     $('mmVs').textContent = `${car(m.a).name}  vs  ${car(m.b).name}`;
     $('mmTrack').textContent = `📍 ${track(m.track).name}`;
     $('mmHype').textContent = `“${m._hype}”`;
@@ -105,11 +104,11 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
     const isFinal = m.round === roundCount(t) - 1;
     const rn = LINES.roundName(m.round, roundCount(t));
     show('race');
-    $('raceTitle').textContent = isFinal ? `🌈 CHAMPIONSHIP · ${tr.name}` : `${rn.replace(/^the /, '')} · ${tr.name}`;
+    $('raceTitle').textContent = isFinal ? `${theme.finalIcon} CHAMPIONSHIP · ${tr.name}` : `${rn.replace(/^the /, '')} · ${tr.name}`;
     const intro = [
       { lane: -1, html: `🎙️ ${isFinal ? 'THE CHAMPIONSHIP' : rn.toUpperCase()}: ${cars[0].name} vs ${cars[1].name}!`, text: m._hype },
       ...cars.map((c, i) => { const f = factFor(c); return { lane: i, html: `Lane ${i + 1}: <b>${c.name}</b> — ${f.replace(c.name, '').trim() || f}`, text: `In lane ${i + 1} is ${c.name}. ${f}` }; }),
-      { lane: -1, html: '🏁 Drivers, start your engines!', text: LINES.ready() },
+      { lane: -1, html: theme.readyHtml, text: LINES.ready() },
     ];
     inRace = true;
     setRaceRun(startRace({
@@ -137,12 +136,12 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
 
   // ---------- export / clear ----------
   const stamp = () => new Date().toISOString().slice(0, 10);
-  const exportJSON = () => { if (t) downloadFile(`wally-cup-${stamp()}.json`, JSON.stringify(t, null, 2), 'application/json'); };
+  const exportJSON = () => { if (t) downloadFile(`${theme.exportPrefix}-${stamp()}.json`, JSON.stringify(t, null, 2), 'application/json'); };
 
   function armClear(btn, label) {
     if (btn.dataset.armed) {
       clearTimeout(confirmTimer); delete btn.dataset.armed; btn.textContent = label;
-      clearTournament(); t = null; picks = new Set(CARS.map((c) => c.id));
+      clearTournament(); t = null; picks = new Set(theme.CARS.map((c) => c.id));
       renderSetup(); show('tSetup');
       return;
     }
@@ -173,7 +172,7 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
       if (file.size > 2e6) throw new Error('That file is too big to be a tournament.');
       let parsed;
       try { parsed = JSON.parse(await file.text()); } catch { throw new Error("That isn't valid JSON."); }
-      x = validateTournament(parsed, CARS.map((c) => c.id), TRACKS.map((tr) => tr.id));
+      x = validateTournament(parsed, theme.CARS.map((c) => c.id), theme.TRACKS.map((tr) => tr.id));
     } catch (err) { sfx.nope(); note(`Couldn't import: ${err.message}`); return; }
     if (t && !t.champion || (t && t.champion && t.id !== x.id)) {
       pending = x;
@@ -194,7 +193,7 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
     sfx.unlock(); sfx.click();
     if (t) openBracket(); else { renderSetup(); show('tSetup'); }
   });
-  $('tAll').addEventListener('click', () => { picks = new Set(CARS.map((c) => c.id)); renderSetup(); });
+  $('tAll').addEventListener('click', () => { picks = new Set(theme.CARS.map((c) => c.id)); renderSetup(); });
   $('tNone').addEventListener('click', () => { picks = new Set(); renderSetup(); });
   $('tBuild').addEventListener('click', () => {
     t = buildBracket([...picks]);

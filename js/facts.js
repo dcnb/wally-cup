@@ -90,6 +90,25 @@ export const FACTS = {
     '{n} has strong opinions about the mail carrier.',
     '{n} would like a belly rub at the next pit stop.',
   ],
+  juju: [
+    '{n} is the friendliest car on the track and will wave at the other racers mid-corner.',
+    '{n} stops to say hello to every cone.',
+    '{n} brought a tennis ball and would love for someone to throw it.',
+    '{n} has never met a stranger, only future best friends.',
+    '{n} wags her tail so hard it adds horsepower.',
+    '{n} thinks the checkered flag is a very nice blanket.',
+    '{n} is a very good girl, and a very fast one.',
+    '{n} sheds a little golden glitter on every lap.',
+  ],
+  kim: [
+    '{n} does not go around corners. Corners go around {n}.',
+    '{n} has a V12 engine and a V12 attitude.',
+    '{n} is so red that stop signs get nervous.',
+    '{n} parks across two spaces, but only because it is that wide.',
+    '{n} has doors that open straight up, for dramatic entrances.',
+    '{n} was born ready, and also born loud.',
+    '{n} thinks speed limits are just suggestions.',
+  ],
   ro: [
     '{n} knits tiny sweaters for the other cars.',
     '{n} names every pothole it meets.',
@@ -106,8 +125,3 @@ export const SPARE_FACTS = [
   '{n} thinks bubbles are tiny moons.',
   '{n} has a secret handshake with the finish line.',
 ];
-
-export function factFor(car) {
-  const pool = FACTS[car.id] || SPARE_FACTS;
-  return pool[(Math.random() * pool.length) | 0].replaceAll('{n}', car.name);
-}

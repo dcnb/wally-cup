@@ -1,5 +1,5 @@
 // Home screen: every car revving in the garage.
-import { CARS } from './data.js';
+import { theme } from './theme.js';
 import { drawCar } from './cars.js';
 import { sfx } from './sound.js';
 
@@ -7,6 +7,7 @@ const TAU = Math.PI * 2;
 
 export function startHome(canvas) {
   const g = canvas.getContext('2d');
+  const CARS = theme.CARS, K = theme.canvas;
   const narrow = window.matchMedia('(max-width: 760px)').matches;
   const cols = narrow ? 3 : 4;
   const rows = Math.ceil(CARS.length / cols);
@@ -28,7 +29,7 @@ export function startHome(canvas) {
   canvas.onclick = (e) => {
     const rect = canvas.getBoundingClientRect();
     const mx = ((e.clientX - rect.left) / rect.width) * W, my = ((e.clientY - rect.top) / rect.height) * H;
-    state.forEach((s, i) => { const p = pos(i); if (Math.abs(mx - p.x) < 110 && my > p.y - 130 && my < p.y + 50) { s.rev = 1; sfx.honk(i); sfx.rev(); shouts.push({ x: p.x + 40, y: p.y - 110, t: 0, w: ['BEEP!', 'HONK!', 'VROOM!', 'BEEP BEEP!'][(Math.random() * 4) | 0] }); } });
+    state.forEach((s, i) => { const p = pos(i); if (Math.abs(mx - p.x) < 110 && my > p.y - 130 && my < p.y + 50) { s.rev = 1; sfx.honk(i, s.car); sfx.rev(); shouts.push({ x: p.x + 40, y: p.y - 110, t: 0, w: theme.shouts[(Math.random() * theme.shouts.length) | 0] }); } });
   };
 
   function frame(now) {
@@ -42,8 +43,8 @@ export function startHome(canvas) {
       s.rev = Math.max(0, s.rev - dt * 0.9);
       const r = s.rev;
       // garage mat
-      g.fillStyle = 'rgba(40,40,80,0.10)'; g.beginPath(); g.roundRect(p.x - 135, p.y - 6, 270, 54, 14); g.fill();
-      g.fillStyle = '#e5483a'; g.fillRect(p.x - 120, p.y + 40, 240, 4);
+      g.fillStyle = K.mat; g.beginPath(); g.roundRect(p.x - 135, p.y - 6, 270, 54, 14); g.fill();
+      g.fillStyle = K.matStripe; g.fillRect(p.x - 120, p.y + 40, 240, 4);
       // exhaust
       if (Math.random() < dt * (10 + r * 40)) s.puffs.push({ x: p.x - 96, y: p.y - 10, r: 5 + Math.random() * 5, a: 0.55 + r * 0.3, vx: -30 - r * 60 });
       s.puffs.forEach((q) => { q.x += q.vx * dt; q.y -= dt * 25; q.r += dt * 14; q.a -= dt * 0.9; });
@@ -53,7 +54,7 @@ export function startHome(canvas) {
       drawCar(g, s.car, p.x + (r > 0.05 ? Math.sin(t * 70 + i) * r * 2 : 0), p.y + 40, 190, {
         t, wheel: t * (8 + r * 30) + s.phase, mood: r > 0.2 ? 'race' : 'happy', bob: Math.max(0, shake), shadow: true,
       });
-      g.font = '700 20px "Barlow Semi Condensed", sans-serif'; g.textAlign = 'center'; g.fillStyle = '#26264a';
+      g.font = '700 20px "Barlow Semi Condensed", sans-serif'; g.textAlign = 'center'; g.fillStyle = K.label;
       g.fillText(s.car.name.toUpperCase(), p.x, p.y + 74);
     });
     for (const sh of shouts) {
@@ -61,8 +62,8 @@ export function startHome(canvas) {
       const k = Math.min(1, sh.t / 0.2), a = 1 - Math.max(0, (sh.t - 0.7) / 0.4);
       g.save(); g.globalAlpha = Math.max(0, a); g.translate(sh.x, sh.y - sh.t * 40); g.rotate(-0.12); g.scale(k * 1.1, k * 1.1);
       g.font = '28px "Alfa Slab One", serif'; g.textAlign = 'center';
-      g.lineWidth = 7; g.strokeStyle = '#26264a'; g.lineJoin = 'round'; g.strokeText(sh.w, 0, 0);
-      g.fillStyle = '#ffc93c'; g.fillText(sh.w, 0, 0); g.restore();
+      g.lineWidth = 7; g.strokeStyle = K.shoutInk; g.lineJoin = 'round'; g.strokeText(sh.w, 0, 0);
+      g.fillStyle = K.shout; g.fillText(sh.w, 0, 0); g.restore();
     }
     while (shouts.length && shouts[0].t > 1.2) shouts.shift();
     raf = requestAnimationFrame(frame);

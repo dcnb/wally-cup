@@ -1,6 +1,7 @@
 // Play-by-play announcer using the browser's built-in speech synthesis.
 // No server and no audio files. If the browser has no voices, everything quietly does nothing.
 import { sfx, music } from './sound.js';
+import { theme } from './theme.js';
 
 const supported = typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 let enabled = true, voice = null, speaking = false, pending = null, lastEnd = 0, currentFin = null;
@@ -78,14 +79,14 @@ export const announcer = {
 // ---- lines ----
 // Every kind of call has lots of variants, and we never repeat the same one twice in a row.
 const lastPick = {};
-function pick(arr, key) {
+export function pick(arr, key) {
   let i = (Math.random() * arr.length) | 0;
   if (key && arr.length > 1 && i === lastPick[key]) i = (i + 1 + ((Math.random() * (arr.length - 1)) | 0)) % arr.length;
   if (key) lastPick[key] = i;
   return arr[i];
 }
 
-export const LINES = {
+const BASE_LINES = {
   welcome: (tr) => pick([
     `Welcome, everybody, to the Wally Cup at ${tr}!`,
     `Ladies and gentlemen, the Wally Cup is here, at ${tr}!`,
@@ -282,3 +283,8 @@ export const LINES = {
     `Don't cry, ${n}. Have a snack.`,
   ], 'loser'),
 };
+
+// Theme overrides win; anything a theme doesn't define falls back to the Wally Cup lines.
+export const LINES = new Proxy(BASE_LINES, {
+  get: (base, k) => theme.lines?.[k] ?? base[k],
+});

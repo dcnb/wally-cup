@@ -1,5 +1,6 @@
 // Championship celebration: fireworks all around the champion while the announcer sings.
 import { drawCar } from './cars.js';
+import { theme } from './theme.js';
 import { Confetti } from './confetti.js';
 import { Fireworks } from './fireworks.js';
 import { sfx } from './sound.js';
@@ -50,8 +51,8 @@ export function showChampion({ canvas, car, runnerUp = null }) {
     const pulse = 1 + Math.sin(t * 5) * 0.03;
     g.save(); g.translate(W / 2, 62); g.scale(pulse, pulse);
     g.font = '54px "Alfa Slab One", serif'; g.lineWidth = 10; g.strokeStyle = '#e5483a'; g.lineJoin = 'round';
-    g.strokeText('🏆 WALLY CUP CHAMPION! 🏆', 0, 0);
-    g.fillStyle = '#ffc93c'; g.fillText('🏆 WALLY CUP CHAMPION! 🏆', 0, 0);
+    g.strokeText(`${theme.champIcon} ${theme.cupName.toUpperCase()} CHAMPION! ${theme.champIcon}`, 0, 0);
+    g.fillStyle = '#ffc93c'; g.fillText(`${theme.champIcon} ${theme.cupName.toUpperCase()} CHAMPION! ${theme.champIcon}`, 0, 0);
     g.restore();
 
     // podium + car

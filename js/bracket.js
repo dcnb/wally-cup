@@ -1,5 +1,5 @@
 // Pure tournament logic (no DOM) so it can run in the browser and in Node tests.
-import { RACE_TRACKS, FINAL_TRACK } from './data.js';
+import { theme } from './theme.js';
 
 const shuffle = (arr, rng) => {
   const a = [...arr];
@@ -44,7 +44,7 @@ export function buildBracket(carIds, rng = Math.random) {
         id: `r${r}m${m}`, round: r, index: m,
         a: r === 0 ? slots[m * 2] : null,
         b: r === 0 ? slots[m * 2 + 1] : null,
-        track: isFinal ? FINAL_TRACK.id : RACE_TRACKS[Math.floor(rng() * RACE_TRACKS.length)].id,
+        track: isFinal ? theme.FINAL_TRACK.id : theme.RACE_TRACKS[Math.floor(rng() * theme.RACE_TRACKS.length)].id,
         winner: null, standings: null, playedAt: null, order: null, bye: false,
       });
     }

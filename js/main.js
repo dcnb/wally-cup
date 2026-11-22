@@ -1,4 +1,4 @@
-import { CARS, RACE_TRACKS } from './data.js';
+import { theme } from './theme.js';
 import { drawCar } from './cars.js';
 import { drawPreview } from './tracks.js';
 import { startHome } from './home.js';
@@ -40,7 +40,7 @@ $('muteBtn').addEventListener('click', () => {
 function buildTracks() {
   const wrap = $('trackCards');
   wrap.innerHTML = '';
-  for (const tr of RACE_TRACKS) {
+  for (const tr of theme.RACE_TRACKS) {
     const btn = document.createElement('button');
     btn.className = 'track-card';
     btn.innerHTML = `<canvas width="640" height="360"></canvas>
@@ -58,7 +58,7 @@ function buildRacers() {
   $('trackChip').textContent = `Track: ${state.track.name}`;
   const grid = $('racerGrid');
   grid.innerHTML = '';
-  for (const car of CARS) {
+  for (const car of theme.CARS) {
     const b = document.createElement('button');
     b.className = 'racer';
     b.dataset.id = car.id;
@@ -86,9 +86,9 @@ function togglePick(car, el) {
   else if (state.picks.length >= 4) {
     el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
     sfx.nope();
-    toast('4 racers is the max — tap a car to take it out first!');
+    toast(`4 racers is the max — tap a ${theme.noun} to take it out first!`);
     return;
-  } else { state.picks.push(car.id); sfx.pick(); sfx.honk(CARS.indexOf(car)); }
+  } else { state.picks.push(car.id); sfx.pick(); sfx.honk(theme.CARS.indexOf(car), car); }
   refreshPicks();
 }
 
@@ -109,7 +109,7 @@ function refreshPicks() {
   $('pickCount').textContent = `${n} of 4 picked`;
   const btn = $('raceBtn');
   btn.disabled = n < 2;
-  btn.textContent = n < 2 ? 'Pick at least 2 cars' : `🏁 RACE ${n} CARS!`;
+  btn.textContent = n < 2 ? `Pick at least 2 ${theme.nouns}` : `🏁 RACE ${n} ${theme.nouns.toUpperCase()}!`;
 }
 
 // Rev up the selected cars on the racer screen.
@@ -117,8 +117,8 @@ let rafSel = 0;
 function selLoop(now) {
   if ($('racers').classList.contains('active')) {
     const t = now / 1000;
-    document.querySelectorAll('.racer.selected').forEach((b) => paintRacer(b, CARS.find((c) => c.id === b.dataset.id), t, 'race'));
-    document.querySelectorAll('.racer:not(.selected)').forEach((b) => { if (b._dirty) { paintRacer(b, CARS.find((c) => c.id === b.dataset.id), 0, 'happy'); b._dirty = false; } });
+    document.querySelectorAll('.racer.selected').forEach((b) => paintRacer(b, theme.CARS.find((c) => c.id === b.dataset.id), t, 'race'));
+    document.querySelectorAll('.racer:not(.selected)').forEach((b) => { if (b._dirty) { paintRacer(b, theme.CARS.find((c) => c.id === b.dataset.id), 0, 'happy'); b._dirty = false; } });
     document.querySelectorAll('.racer.selected').forEach((b) => (b._dirty = true));
   }
   rafSel = requestAnimationFrame(selLoop);
@@ -127,7 +127,7 @@ rafSel = requestAnimationFrame(selLoop);
 
 // ---------- race ----------
 function runRace() {
-  const cars = state.picks.map((id) => CARS.find((c) => c.id === id));
+  const cars = state.picks.map((id) => theme.CARS.find((c) => c.id === id));
   show('race');
   $('raceTitle').textContent = state.track.name;
   raceRun = startRace({

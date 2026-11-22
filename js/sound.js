@@ -57,12 +57,14 @@ export const sfx = {
   nope() { tone({ f: 200, dur: 0.12, type: 'sawtooth', vol: 0.1 }); tone({ f: 160, dur: 0.16, type: 'sawtooth', vol: 0.1, delay: 0.1 }); },
 
   // Each car has its own honk pitch.
-  honk(i = 0) {
-    if (i === 11) { // Rufus barks instead of honking
-      [0, 0.2].forEach((d) => { tone({ f: 420, f2: 190, dur: 0.12, type: 'sawtooth', vol: 0.12, delay: d }); noise({ dur: 0.1, vol: 0.06, freq: 900, delay: d }); });
+  honk(i = 0, car = null) {
+    const voice = car?.voice ?? (i === 11 && !car?.pitch ? 'bark' : null);
+    if (voice === 'bark' || voice === 'yip') { // dogs bark instead of honking (yip = small dog)
+      const hi = voice === 'yip' ? 1.7 : 1;
+      [0, 0.2].forEach((d) => { tone({ f: 420 * hi, f2: 190 * hi, dur: voice === 'yip' ? 0.09 : 0.12, type: 'sawtooth', vol: 0.12, delay: d }); noise({ dur: 0.1, vol: 0.06, freq: 900 * hi, delay: d }); });
       return;
     }
-    const base = [440, 520, 330, 300, 250, 400, 140, 360, 700, 120, 280][i % 11];
+    const base = car?.pitch ?? [440, 520, 330, 300, 250, 400, 140, 360, 700, 120, 280][i % 11];
     tone({ f: base, f2: base * 0.96, dur: 0.28, type: 'square', vol: 0.1 });
     tone({ f: base * 1.26, f2: base * 1.2, dur: 0.28, type: 'square', vol: 0.08 });
     if (i === 8) [784, 659, 698, 523].forEach((f, k) => tone({ f, dur: 0.14, type: 'triangle', vol: 0.12, delay: 0.3 + k * 0.15 }));

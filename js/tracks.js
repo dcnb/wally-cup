@@ -1,4 +1,8 @@
-// Procedural scenery for the three tracks. All canvas, no images.
+// Procedural scenery for the tracks. All canvas, no images.
+// A theme can supply its own scenery per track id (theme.scenes), which is checked first.
+import { theme } from './theme.js';
+const scene = (track) => theme.scenes?.[track.id];
+export { tiles, tri, ell, hash };
 
 const TAU = Math.PI * 2;
 const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
@@ -22,6 +26,8 @@ function ell(g, x, y, rx, ry, fill, rot = 0) {
 // ---------- SKY / FAR BACKGROUND (fills y from 0 down to the lanes) ----------
 
 export function drawSky(g, track, W, H, horizon, scroll, t) {
+  const S = scene(track);
+  if (S) { S.sky(g, W, H, horizon, scroll, t); S.mid?.(g, W, horizon, scroll, t); return; }
   if (track.id === 'desert') skyDesert(g, W, H, horizon, scroll, t);
   else if (track.id === 'sea') skySea(g, W, H, horizon, scroll, t);
   else if (track.id === 'rainbow') skyRainbow(g, W, H, horizon, scroll, t);
@@ -54,6 +60,8 @@ function drawMid(g, track, W, hz, scroll, t) {
 
 // Big, fast, in-your-face objects along the bottom edge. Drawn over the lanes for a sense of speed.
 export function drawForeground(g, track, W, H, scroll, t) {
+  const S = scene(track);
+  if (S) { S.foreground?.(g, W, H, scroll, t); return; }
   const sc = scroll * 1.9, u = H * 0.2;
   g.save(); g.lineJoin = 'round';
   tiles(1250, sc, W, 260, (i, x) => {
@@ -227,7 +235,9 @@ function pine(g, x, y, w, h, c1, c2) {
 // ---------- LANE GROUND ----------
 
 export function drawLaneGround(g, track, x, y, w, h, scroll, t, lane) {
-  if (track.id === 'desert') {
+  const S = scene(track);
+  if (S) S.ground(g, x, y, w, h, scroll, t, lane);
+  else if (track.id === 'desert') {
     const gr = g.createLinearGradient(0, y, 0, y + h);
     gr.addColorStop(0, '#f7d995'); gr.addColorStop(1, '#e8b765');
     g.fillStyle = gr; g.fillRect(x, y, w, h);
@@ -263,6 +273,8 @@ export function drawLaneGround(g, track, x, y, w, h, scroll, t, lane) {
 // Scenery that sits behind the car in this lane, at the lane's far edge.
 export function drawLaneScenery(g, track, x, y, w, h, scroll, t, lane) {
   const base = y + h * 0.58; // where plants sit
+  const S = scene(track);
+  if (S) { S.scenery(g, x, y, w, h, scroll, t, lane, base); return; }
   if (track.id === 'desert') {
     tiles(300, scroll, w, 80, (i, sx) => {
       const r = hash(i + lane * 11);
@@ -325,6 +337,7 @@ function coral(g, x, y, h, seed) {
 // ---------- ZONES (stretches of the course; drawn over the ground band of one lane) ----------
 
 export function drawZone(g, zone, x0, x1, y, h, t, lane) {
+  const custom = theme.zoneKinds?.[zone.kind];
   const w = x1 - x0;
   const gy = y + h * 0.44;          // the line the cars drive on
   const u = h;                       // size unit (half a lane)
@@ -333,7 +346,9 @@ export function drawZone(g, zone, x0, x1, y, h, t, lane) {
   g.beginPath(); g.rect(x0 - 6, y - h * 0.95, w + 12, h * 2); g.clip();
   g.lineJoin = 'round'; g.lineCap = 'round';
 
-  if (zone.kind === 'rocks') {
+  if (custom) {
+    custom(g, { zone, x0, x1, w, y, h, gy, u, t, lane });
+  } else if (zone.kind === 'rocks') {
     g.fillStyle = 'rgba(120,70,30,0.35)'; g.fillRect(x0, gy - u * 0.1, w, u * 0.75);
     const n = Math.max(3, Math.floor(w / 78));
     for (let i = 0; i < n; i++) {
@@ -436,7 +451,7 @@ export function drawZoneGate(g, zone, x, y, h) {
 // A stunt ramp. Cars launch from its lip.
 export function drawRamp(g, x, groundY, laneH, track) {
   const w = laneH * 0.62, hh = laneH * 0.26;
-  const col = track.id === 'desert' ? '#c98a4a' : track.id === 'sea' ? '#ff7a6b' : track.id === 'rainbow' ? '#ffc93c' : '#8a5a2e';
+  const col = scene(track)?.rampColor || (track.id === 'desert' ? '#c98a4a' : track.id === 'sea' ? '#ff7a6b' : track.id === 'rainbow' ? '#ffc93c' : '#8a5a2e');
   g.save(); g.lineJoin = 'round';
   g.translate(x, groundY);
   g.fillStyle = col; g.strokeStyle = '#1b1b24'; g.lineWidth = 3.5;
@@ -463,7 +478,9 @@ export function drawZoneBanner(g, zone, x0, x1, y, active) {
 // Mood lighting that changes as the race goes on.
 export function drawTint(g, track, W, H, p) {
   let c;
-  if (track.id === 'desert') c = `rgba(255,110,40,${(p * 0.28).toFixed(3)})`;
+  const S = scene(track);
+  if (S) c = S.tint(p);
+  else if (track.id === 'desert') c = `rgba(255,110,40,${(p * 0.28).toFixed(3)})`;
   else if (track.id === 'rainbow') c = `rgba(229,72,58,${(p * 0.12).toFixed(3)})`;
   else if (track.id === 'sea') c = `rgba(0,20,90,${(p * 0.3).toFixed(3)})`;
   else c = `rgba(230,140,40,${(p * 0.2).toFixed(3)})`;
@@ -472,6 +489,8 @@ export function drawTint(g, track, W, H, p) {
 
 // Falling leaves on the forest track / dust on desert, drawn over everything.
 export function drawAmbient(g, track, W, H, scroll, t) {
+  const S = scene(track);
+  if (S) { S.ambient?.(g, W, H, scroll, t); return; }
   if (track.id === 'forest') {
     for (let i = 0; i < 14; i++) {
       const x = ((hash(i) * W - scroll * 0.6 + t * 20) % W + W) % W;

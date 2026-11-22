@@ -3,8 +3,7 @@ import { createRace, step, standings, zoneAt, CONFIG } from './sim.js';
 import { drawCar } from './cars.js';
 import { sfx, music } from './sound.js';
 import { announcer, LINES } from './announcer.js';
-import { factFor } from './facts.js';
-import { CARS } from './data.js';
+import { factFor, theme } from './theme.js';
 import { drawSky, drawLaneGround, drawLaneScenery, drawForeground, drawZone, drawZoneGate, drawRamp, drawZoneBanner, drawTint, drawAmbient } from './tracks.js';
 
 const TAU = Math.PI * 2;
@@ -92,18 +91,18 @@ export function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone
     phase = 'intro';
     if (skipBtn) { skipBtn.hidden = false; skipBtn.onclick = () => { skipIntro = true; announcer.cancel(); }; }
     const steps = intro || [
-      { lane: -1, html: `🎙️ Welcome to the Wally Cup at ${track.name}!`, text: LINES.welcome(track.name) },
+      { lane: -1, html: `🎙️ Welcome to the ${theme.cupName} at ${track.name}!`, text: LINES.welcome(track.name) },
       ...cars.map((c, i) => {
         const fact = factFor(c);
         return { lane: i, html: `Lane ${i + 1}: ${nm(i)} — ${fact.replace(c.name, '').trim() || fact}`, text: `In lane ${i + 1} is ${c.name}. ${fact}` };
       }),
-      { lane: -1, html: '🏁 Drivers, start your engines!', text: LINES.ready() },
+      { lane: -1, html: theme.readyHtml, text: LINES.ready() },
     ];
     for (const st of steps) {
       if (stopped || skipIntro) break;
       introLane = st.lane;
       ticker.innerHTML = `<span class="tick lead">${st.html}</span>`;
-      if (st.lane >= 0) { vis[st.lane].sparkle = 1.4; sfx.honk(CARS.findIndex((x) => x.id === cars[st.lane].id)); }
+      if (st.lane >= 0) { vis[st.lane].sparkle = 1.4; sfx.honk(theme.CARS.findIndex((x) => x.id === cars[st.lane].id), cars[st.lane]); }
       await announcer.sayAsync(st.text);
       await new Promise((r) => setTimeout(r, 250));
     }

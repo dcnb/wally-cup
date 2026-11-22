@@ -1,6 +1,8 @@
 // Procedural cartoon cars. Everything is drawn on a canvas, so there are no image files.
 // Cars face RIGHT. Local coordinate space: x 0..200, y 0 is the ground, negative y is up.
 
+import { theme } from './theme.js';
+
 export const CAR_W = 200; // nominal width in local units
 
 function shade(hex, amt) {
@@ -103,8 +105,9 @@ function face(g, x, y, s, mood, t) {
   g.restore();
 }
 
-const GLASS = '#bfe8ff';
-const CHROME = '#e9edf3';
+export const GLASS = '#bfe8ff';
+export const CHROME = '#e9edf3';
+export { shade, poly, rrect, ellipse, wheel, face };
 
 // Each drawer paints one car body and returns its driver position {x, y}.
 const DRAW = {
@@ -172,20 +175,34 @@ const DRAW = {
 
   // --- Kristin: Subaru wagon, black ---
   kristin(g, c, a) {
-    const hi = shade(c, 0.3);
-    poly(g, [[8, -18], [8, -42], [40, -46], [54, -72], [150, -72], [176, -46], [198, -40], [198, -18]], c);
-    // windows
-    poly(g, [[58, -47], [66, -67], [108, -67], [108, -47]], GLASS, '#0b0b10', 2.5);
-    poly(g, [[112, -47], [112, -67], [148, -67], [166, -47]], GLASS, '#0b0b10', 2.5);
-    // roof rails
-    rrect(g, 56, -77, 94, 4, 2, '#888d99', null);
-    // details
-    rrect(g, 186, -34, 12, 8, 3, '#fff7b0'); rrect(g, 8, -34, 8, 8, 2, '#ff4a4a');
-    g.strokeStyle = hi; g.lineWidth = 3; g.beginPath(); g.moveTo(14, -30); g.lineTo(184, -30); g.stroke();
-    rrect(g, 4, -22, 194, 6, 3, '#4a4a55', null);
+    const hi = shade(c, 0.35);
+    // roof cargo: a box and a red cooler full of snacks, held on silver crossbars
+    rrect(g, 30, -92, 62, 15, 6, '#5a5f6b');
+    rrect(g, 98, -88, 26, 12, 3, '#e5483a'); rrect(g, 96, -92, 30, 5, 2, '#f6ecd6');
+    rrect(g, 24, -78, 106, 4, 2, '#aab0bb', null);
+    poly(g, [[44, -77], [44, -73], [48, -73], [48, -77]], '#aab0bb', null, 0);
+    // body: boxy wagon roof running all the way back, upright tailgate, low hood
+    poly(g, [[8, -18], [8, -44], [22, -72], [124, -72], [152, -44], [198, -37], [198, -18]], c);
+    // rear spoiler over the tailgate window
+    poly(g, [[8, -70], [26, -76], [30, -72], [14, -68]], '#1b1b24', null);
+    // side windows: cargo quarter, rear door, front door
+    poly(g, [[16, -47], [24, -68], [48, -68], [48, -47]], GLASS, '#0b0b10', 2.5);
+    poly(g, [[54, -47], [54, -68], [92, -68], [92, -47]], GLASS, '#0b0b10', 2.5);
+    poly(g, [[98, -47], [98, -68], [122, -68], [145, -47]], GLASS, '#0b0b10', 2.5);
+    // door seams + handles
+    g.strokeStyle = '#0b0b10'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(51, -46); g.lineTo(51, -20); g.moveTo(95, -46); g.lineTo(95, -20); g.stroke();
+    rrect(g, 76, -41, 10, 3, 1.5, hi, null); rrect(g, 120, -41, 10, 3, 1.5, hi, null);
+    // silver trim, black lower cladding (a very outdoorsy touch)
+    g.strokeStyle = '#aab0bb'; g.lineWidth = 3; g.beginPath(); g.moveTo(12, -46); g.lineTo(148, -46); g.stroke();
+    rrect(g, 6, -26, 194, 9, 3, '#3a3a45', null);
+    // lights + hood scoop
+    rrect(g, 186, -33, 12, 7, 3, '#fff7b0'); rrect(g, 8, -40, 6, 11, 2, '#ff4a4a');
+    poly(g, [[166, -43], [186, -40], [186, -37], [166, -40]], '#15151b', null, 0);
     wheel(g, 50, 17, a); wheel(g, 150, 17, a);
-    return { x: 128, y: -57, s: 0.9 };
+    return { x: 118, y: -57, s: 0.72 };
   },
+
 
   // --- Devin: Range Rover, teal ---
   devin(g, c, a) {
@@ -365,6 +382,90 @@ const DRAW = {
     return { x: 84, y: -77, s: 0.78 };
   },
 
+  // --- Juju: golden retriever race car. Rufus's cousin: fluffier, sunnier, carries a tennis ball. ---
+  juju(g, c, a) {
+    const light = shade(c, 0.5), ear = shade(c, -0.38), fur = shade(c, -0.15);
+    const wag = Math.sin(a * 1.6) * 0.5; // a bigger, happier wag than Rufus
+    // feathery plume tail
+    g.save(); g.translate(14, -50); g.rotate(-1.05 + wag);
+    for (const [len, col] of [[52, fur], [44, c]]) {
+      g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(-18, -len * 0.5, -4, -len); g.quadraticCurveTo(10, -len * 0.55, 12, 0); g.closePath();
+      g.fillStyle = col; g.fill(); g.lineWidth = 3; g.strokeStyle = '#1b1b24'; g.stroke();
+    }
+    g.restore();
+    // body: long, low retriever torso
+    g.beginPath();
+    g.moveTo(12, -22); g.quadraticCurveTo(6, -60, 40, -64); g.lineTo(122, -64);
+    g.quadraticCurveTo(144, -64, 146, -44); g.lineTo(146, -22); g.closePath();
+    g.fillStyle = c; g.fill(); g.lineWidth = 3; g.strokeStyle = '#1b1b24'; g.stroke();
+    // fluffy cream chest + feathered belly fringe
+    g.beginPath(); g.moveTo(112, -24); g.quadraticCurveTo(138, -42, 146, -46); g.lineTo(146, -22); g.closePath(); g.fillStyle = light; g.fill();
+    g.beginPath(); g.moveTo(18, -22);
+    for (let x = 18; x <= 146; x += 14) { g.lineTo(x + 7, -14); g.lineTo(x + 14, -22); }
+    g.closePath(); g.fillStyle = fur; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#1b1b24'; g.stroke();
+    // head + snout (the hood)
+    ellipse(g, 150, -66, 27, 27, c);
+    rrect(g, 150, -62, 46, 26, 12, c);
+    rrect(g, 156, -48, 36, 11, 6, light, null);
+    ellipse(g, 194, -54, 9, 7, '#1b1b24', '#1b1b24', 2);
+    ellipse(g, 191, -56, 2.5, 2, '#6b6f80', null);
+    // tennis ball held in a big happy grin
+    g.strokeStyle = '#1b1b24'; g.lineWidth = 2.5; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(172, -44); g.quadraticCurveTo(182, -38, 192, -44); g.stroke();
+    ellipse(g, 183, -36, 10, 10, '#d9f24a');
+    g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.arc(178, -36, 9, -0.9, 0.9); g.stroke(); g.beginPath(); g.arc(188, -36, 9, Math.PI - 0.9, Math.PI + 0.9); g.stroke();
+    // sparkly dog eye
+    ellipse(g, 168, -74, 4.6, 4.6, '#fff'); ellipse(g, 169.5, -74, 2.4, 2.4, '#1b1b24', null); ellipse(g, 170.3, -75, 0.9, 0.9, '#fff', null);
+    // long feathered ear
+    g.save(); g.translate(138, -84); g.rotate(0.2 + wag * 0.2);
+    g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(-26, 4, -20, 40); g.lineTo(-10, 34); g.lineTo(-4, 46); g.quadraticCurveTo(10, 40, 14, 18); g.quadraticCurveTo(14, 6, 0, 0);
+    g.fillStyle = ear; g.fill(); g.lineWidth = 3; g.strokeStyle = '#1b1b24'; g.stroke();
+    g.restore();
+    // teal bandana instead of a collar
+    poly(g, [[124, -70], [150, -64], [136, -34]], '#2e9aa0');
+    for (const [bx, by] of [[134, -60], [140, -54], [136, -46]]) ellipse(g, bx, by, 2, 2, '#f6ecd6', null);
+    // driver's window on the back
+    g.beginPath(); g.moveTo(52, -64); g.quadraticCurveTo(58, -86, 84, -86); g.quadraticCurveTo(110, -86, 114, -64); g.closePath();
+    g.fillStyle = GLASS; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#1b1b24'; g.stroke();
+    // racing roundel with a J
+    ellipse(g, 86, -38, 13, 13, '#fff');
+    g.fillStyle = '#1b1b24'; g.font = '700 18px "Alfa Slab One", serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('J', 86, -37);
+    wheel(g, 52, 17, a, { rim: '#2e9aa0' }); wheel(g, 142, 17, a, { rim: '#2e9aa0' });
+    return { x: 84, y: -75, s: 0.78 };
+  },
+
+  // --- Kim: bright red Lamborghini. Low, wide, wedge-shaped. ---
+  kim(g, c, a) {
+    const dark = shade(c, -0.45), hi = shade(c, 0.35);
+    // rear wing
+    rrect(g, 4, -50, 30, 6, 2, dark);
+    poly(g, [[12, -44], [16, -44], [18, -30], [14, -30]], '#2a2a33');
+    // wedge body: tall rear, cab-forward, nose drops to the ground
+    poly(g, [[6, -14], [8, -34], [58, -40], [92, -42], [198, -24], [200, -14]], c);
+    // hood highlight
+    poly(g, [[100, -42], [194, -26], [194, -29], [110, -44]], hi, null);
+    // glass canopy (driver face is drawn over this)
+    poly(g, [[82, -41], [112, -65], [146, -50], [168, -36], [150, -33]], GLASS, '#1b1b24', 2.5);
+    g.strokeStyle = '#1b1b24'; g.lineWidth = 2; g.beginPath(); g.moveTo(112, -65); g.lineTo(124, -37); g.stroke();
+    // side crease + air intake
+    g.strokeStyle = dark; g.lineWidth = 3; g.beginPath(); g.moveTo(16, -26); g.lineTo(100, -26); g.stroke();
+    poly(g, [[88, -34], [132, -32], [132, -20], [96, -18]], '#15151b', '#1b1b24', 2.5);
+    g.strokeStyle = '#3a3a45'; g.lineWidth = 2;
+    for (let x = 100; x < 130; x += 7) { g.beginPath(); g.moveTo(x, -31); g.lineTo(x + 2, -21); g.stroke(); }
+    // sharp headlight, taillight, front splitter, bull badge
+    poly(g, [[174, -31], [196, -27], [196, -23], [168, -27]], '#fff7b0', '#1b1b24', 2);
+    rrect(g, 6, -33, 16, 6, 2, '#ffb02e');
+    poly(g, [[170, -14], [204, -14], [200, -9], [168, -9]], '#23232b');
+    ellipse(g, 186, -20, 4, 4, '#ffc93c', '#1b1b24', 1.5);
+    // wheels sit in dark arches
+    for (const wx of [48, 152]) {
+      g.save(); g.beginPath(); g.rect(wx - 26, -46, 52, 46); g.clip();
+      ellipse(g, wx, -15, 20, 20, '#141418', null); g.restore();
+    }
+    wheel(g, 48, 15, a, { rim: '#ffc93c' }); wheel(g, 152, 15, a, { rim: '#ffc93c' });
+    return { x: 118, y: -52, s: 0.72 };
+  },
+
   // --- Grandma Ro: VW van, lavender ---
   ro(g, c, a) {
     const dark = shade(c, -0.25);
@@ -414,7 +515,7 @@ export function drawCar(g, car, x, y, width, opts = {}) {
   g.scale(s, s);
   g.translate(-CAR_W / 2, 0);
   g.lineJoin = 'round';
-  const d = DRAW[car.id](g, car.color, wa);
+  const d = (theme.DRAW?.[car.id] || DRAW[car.id])(g, car.color, wa);
   if (!noFace) face(g, d.x, d.y, d.s, mood, t);
   g.restore();
 }

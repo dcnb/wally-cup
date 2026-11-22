@@ -1,5 +1,7 @@
-// Headless bracket checks: node test/bracket.mjs
-import { CARS, TRACKS, FINAL_TRACK, RACE_TRACKS } from '../js/data.js';
+// Headless bracket checks: node test/bracket.mjs [tday]
+import { setTheme, theme } from '../js/theme.js';
+if (process.argv[2] === 'tday') setTheme((await import('../js/themes/tday.js')).tdayTheme);
+const { CARS, TRACKS, FINAL_TRACK, RACE_TRACKS } = theme;
 import { buildBracket, isReady, nextReady, recordResult, allMatches, validateTournament } from '../js/bracket.js';
 import { mulberry32 } from '../js/sim.js';
 

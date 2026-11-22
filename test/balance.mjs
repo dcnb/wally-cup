@@ -1,5 +1,8 @@
-// Headless balance check: node test/balance.mjs
-import { CARS, RACE_TRACKS as TRACKS } from '../js/data.js';
+// Headless balance check: node test/balance.mjs [tday]
+import { setTheme, theme } from '../js/theme.js';
+const TDAY = process.argv[2] === 'tday';
+if (TDAY) setTheme((await import('../js/themes/tday.js')).tdayTheme);
+const CARS = theme.CARS, TRACKS = theme.RACE_TRACKS;
 import { simulate, mulberry32, baseFitness, TOURNEY_CONFIG } from '../js/sim.js';
 
 const N = 4000;
@@ -40,23 +43,38 @@ function field(ids, track, label, expectId) {
   console.log(`${ok ? 'ok ' : 'BAD'} ${label}: ` + sorted.map(([k, v]) => `${k} ${pct(v / M).trim()}`).join(', '));
 }
 console.log('\n-- stat sanity (4-car fields) --');
+if (TDAY) {
+  field(['zanni', 'heidi', 'ro', 'kristin'], TRACKS[0], 'patch favors off-road (Heidi)', 'heidi');
+  field(['kristin', 'bode', 'ro', 'frank'], TRACKS[1], 'gravy favors speed (Bode)', 'bode');
+  field(['devin', 'kristin', 'ro', 'frank'], TRACKS[2], 'bog favors handling (Devin)', 'devin');
+} else {
 field(['kristin', 'jack', 'nancy', 'tyson'], TRACKS[0], 'desert favors off-road (Kristin)', 'kristin');
 field(['kristin', 'jack', 'josie', 'tyson'], TRACKS[1], 'sea favors speed (Jack)', 'jack');
 field(['kristin', 'jack', 'nancy', 'tyson'], TRACKS[2], 'forest favors handling (Kristin)', 'kristin');
+}
 
-// Tournament mode should be luckier: 1v1 favorite wins a clearly smaller share than free-play.
-console.log('\n-- tournament luck (1v1) --');
+// Tournament mode: stats are squeezed + re-rolled per race. The field should be close to even,
+// with Wallace (maxed stats) only modestly ahead.
+console.log('\n-- tournament evenness (1v1) --');
 {
-  const rng = mulberry32(7); let n = 0, fav = 0, favFree = 0;
-  for (let i = 0; i < 3000; i++) {
+  const rng = mulberry32(7); const wins = {}, app = {}; let n = 0, fav = 0, favFree = 0;
+  for (let i = 0; i < 6000; i++) {
     const track = TRACKS[i % TRACKS.length];
     const pool = [...CARS].sort(() => rng() - 0.5).slice(0, 2);
     const f = [...pool].sort((a, b) => baseFitness(b, track) - baseFitness(a, track))[0].id;
-    if (simulate(pool, track, i + 1, TOURNEY_CONFIG).winner === f) fav++;
+    const w = simulate(pool, track, i + 1, TOURNEY_CONFIG).winner;
+    if (w === f) fav++;
     if (simulate(pool, track, i + 1).winner === f) favFree++;
-    n++;
+    for (const c of pool) app[c.id] = (app[c.id] || 0) + 1;
+    wins[w] = (wins[w] || 0) + 1; n++;
   }
+  const rates = CARS.map((c) => [c.name, (wins[c.id] || 0) / app[c.id]]).sort((a, b) => b[1] - a[1]);
   console.log(`favorite wins: free-play ${pct(favFree / n)}, tournament ${pct(fav / n)}`);
-  if (fav / n > 0.72 || fav / n < 0.52 || fav >= favFree) { console.log('BAD tournament luck out of band'); failed = true; }
+  console.log('1v1 win rate: ' + rates.map(([k, v]) => `${k} ${pct(v).trim()}`).join(' | '));
+  const wally = rates.find(([k]) => k === 'Wallace')[1];
+  if (fav / n > 0.62 || fav / n < 0.48) { console.log('BAD favorite win rate out of band'); failed = true; }
+  if (wally < 0.53 || wally > 0.66) { console.log('BAD Wallace should be only slightly ahead'); failed = true; }
+  if (rates.at(-1)[1] < 0.4) { console.log('BAD weakest car too hopeless'); failed = true; }
+  if (rates.slice(1).some(([, v]) => v > wally)) { console.log('BAD someone out-rates Wallace'); failed = true; }
 }
 process.exit(failed ? 1 : 0);

@@ -1,0 +1,19 @@
+/* The Turkey Cup: same retro poster, harvest palette. Loaded after style.css. */
+body.tday {
+  --paper: oklch(95% 0.035 80);
+  --paper-deep: oklch(89% 0.06 72);
+  --ink: oklch(27% 0.05 45);
+  --ink-soft: oklch(40% 0.05 50);
+  --red: oklch(55% 0.17 40);         /* burnt orange */
+  --red-deep: oklch(42% 0.15 28);    /* cranberry */
+  --mustard: oklch(82% 0.15 85);
+  --mustard-deep: oklch(66% 0.14 75);
+  --teal: oklch(58% 0.07 140);       /* sage */
+  --teal-deep: oklch(42% 0.07 145);
+  --road-1: #b3361f; --road-2: #d9622b; --road-3: #e0a02b; --road-4: #6b7f3a; --road-5: #8a5a2e; --road-6: #5b3a1f;
+  background-image:
+    linear-gradient(to bottom, var(--red) 0 10px, var(--paper) 10px 14px, var(--ink) 14px 18px, transparent 18px),
+    radial-gradient(circle at 1px 1px, oklch(78% 0.07 70 / 0.5) 1.2px, transparent 1.6px);
+}
+body.tday .logo { text-shadow: 4px 4px 0 var(--ink), 8px 8px 0 var(--mustard); }
+body.tday #champCanvas { background: #3b2417; }

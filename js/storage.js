@@ -1,17 +1,18 @@
 // Browser-only persistence for tournaments. Everything lives in localStorage.
-const KEY = 'wallycup.tournament.v1';
+import { theme } from './theme.js';
+const KEY_OF = () => theme.storageKey;
 
 export function loadTournament() {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY_OF());
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
 export function saveTournament(t) {
-  try { localStorage.setItem(KEY, JSON.stringify(t)); return true; } catch { return false; }
+  try { localStorage.setItem(KEY_OF(), JSON.stringify(t)); return true; } catch { return false; }
 }
 export function clearTournament() {
-  try { localStorage.removeItem(KEY); } catch { /* ignore */ }
+  try { localStorage.removeItem(KEY_OF()); } catch { /* ignore */ }
 }
 
 export function downloadFile(name, text, mime = 'text/plain') {

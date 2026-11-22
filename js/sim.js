@@ -53,6 +53,10 @@ export function zoneAt(track, progress) {
 
 // Tournament mode: more chaos so underdogs have a real shot.
 export const TOURNEY_CONFIG = {
+  // Stats are squeezed toward the middle (3) and re-rolled at the start of every race,
+  // so nobody is a lock. Maxed-out cars keep a modest edge from the squeeze.
+  statSquash: 0.3,    // 1 = real stats, 0 = everyone identical
+  statJitter: 1.4,    // +/- stat points rolled per car, per race
   form: 0.24,
   surgeAmp: 0.4,
   luckyBreakRate: 0.03,
@@ -62,9 +66,20 @@ export const TOURNEY_CONFIG = {
   rubberMax: 0.2,
 };
 
+const STAT_KEYS = ['speed', 'handling', 'offroad', 'intangibles'];
+const clampStat = (v) => Math.max(1, Math.min(5, v));
+
+// A copy of the car with this race's squeezed + re-rolled stats (identity fields are kept).
+export function rollStats(car, rng, squash, jitter) {
+  const out = { ...car };
+  for (const k of STAT_KEYS) out[k] = clampStat(3 + (car[k] - 3) * squash + (rng() * 2 - 1) * jitter);
+  return out;
+}
+
 export function createRace(cars, track, rng = Math.random, cfg = null) {
   const range = (a, b) => a + (b - a) * rng();
   const C = cfg ? { ...CONFIG, ...cfg } : CONFIG;
+  if (C.statSquash != null) cars = cars.map((c) => rollStats(c, rng, C.statSquash, C.statJitter ?? 0));
   return {
     t: 0,
     cfg: C,
