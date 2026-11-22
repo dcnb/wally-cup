@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Wally Cup</title>
+  <meta name="description" content="A family racing game. Pick a track, pick your racers, and see who wins the Wally Cup!">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%86%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <button class="btn mute mic" id="micBtn" aria-label="Toggle announcer" title="Announcer on/off">🎙️</button>
+  <button class="btn mute" id="muteBtn" aria-label="Mute sound" title="Sound on/off">🔊</button>
+  <!-- HOME -->
+  <main id="home" class="screen active">
+    <h1 class="logo"><span class="cup">🏆</span> The Wally Cup</h1>
+    <p class="tagline">WHO TAKES THE CUP HOME?</p>
+    <canvas id="homeCanvas" aria-label="All the cars revving their engines"></canvas>
+    <p class="hint-click">Tap a car to make it honk!</p>
+    <button class="btn big" id="startBtn">START</button>
+    <button class="btn big ghost" id="tourneyBtn">🏆 TOURNAMENT</button>
+  </main>
+
+  <!-- TRACK SELECT -->
+  <main id="tracks" class="screen">
+    <button class="btn small ghost back" data-go="home">← Back</button>
+    <h2>Pick a Track</h2>
+    <div class="cards" id="trackCards"></div>
+  </main>
+
+  <!-- RACER SELECT -->
+  <main id="racers" class="screen">
+    <button class="btn small ghost back" data-go="tracks">← Tracks</button>
+    <h2>Choose Your Racers</h2>
+    <p class="sub">Pick 2 to 4 cars. Their secrets stay hidden — you'll find out how good they are on the track!</p>
+    <div class="racer-bar">
+      <span id="trackChip" class="chip"></span>
+      <span id="pickCount" class="chip count">0 of 4 picked</span>
+    </div>
+    <div class="racer-grid" id="racerGrid"></div>
+    <div class="actions">
+      <button class="btn big" id="raceBtn" disabled>Pick at least 2 cars</button>
+    </div>
+    <div id="toast" class="toast" hidden></div>
+  </main>
+
+  <!-- RACE -->
+  <main id="race" class="screen">
+    <div class="race-top">
+      <button class="btn small ghost" id="quitRace">✕ Quit</button>
+      <h2 id="raceTitle"></h2>
+    </div>
+    <div class="stage">
+      <canvas id="raceCanvas" aria-label="The race"></canvas>
+      <div id="bubble" class="bubble" hidden></div>
+    </div>
+    <div id="ticker" class="ticker" aria-live="polite"></div>
+    <button class="btn small ghost" id="skipIntro" hidden>⏭ Skip intro</button>
+  </main>
+
+  <!-- RESULTS -->
+  <main id="results" class="screen">
+    <canvas id="resultCanvas" aria-label="Race results"></canvas>
+    <div class="actions row">
+      <button class="btn" id="againBtn">🔁 Race Again</button>
+      <button class="btn ghost" id="newCarsBtn">🚗 New Racers</button>
+      <button class="btn ghost" id="newTrackBtn">🗺️ New Track</button>
+      <button class="btn ghost" id="homeBtn">🏠 Home</button>
+    </div>
+  </main>
+
+  <!-- TOURNAMENT: SETUP -->
+  <main id="tSetup" class="screen">
+    <button class="btn small ghost back" data-go="home">← Home</button>
+    <h2>Tournament</h2>
+    <p class="sub">Who's in? Everyone is shuffled into a random bracket slot, every race gets a random track, and the final is on Rainbow Road. Luck matters more here!</p>
+    <div class="racer-bar">
+      <span id="tCount" class="chip count"></span>
+      <button class="btn small ghost" id="tAll">Select all</button>
+      <button class="btn small ghost" id="tNone">Clear</button>
+    </div>
+    <div class="t-roster" id="tRoster"></div>
+    <div class="actions"><button class="btn big" id="tBuild">🎲 DRAW THE BRACKET</button></div>
+  </main>
+
+  <!-- TOURNAMENT: BRACKET -->
+  <main id="tBracket" class="screen">
+    <button class="btn small ghost back" data-go="home">← Home</button>
+    <h2>The Bracket</h2>
+    <p class="sub" id="tStatus"></p>
+    <div class="actions row t-tools">
+      <button class="btn small" id="tNext">▶ Next match</button>
+      <button class="btn small ghost" id="tCsv">⬇ Export CSV</button>
+      <button class="btn small ghost" id="tJson">⬇ Export JSON</button>
+      <button class="btn small ghost" id="tCelebrate" hidden>🎆 Champion!</button>
+      <button class="btn small ghost danger" id="tClear">🗑 New tournament</button>
+    </div>
+    <div class="bracket-scroll"><div class="bracket" id="bracket"></div></div>
+    <p class="sub small">Saved in this browser. Close the tab and come back any time — click any lit-up match to race it.</p>
+    <div class="modal" id="matchModal" hidden>
+      <div class="modal-card" role="dialog" aria-labelledby="mmRound">
+        <div class="mm-round" id="mmRound"></div>
+        <div class="mm-vs" id="mmVs"></div>
+        <div class="mm-track" id="mmTrack"></div>
+        <p class="mm-hype" id="mmHype"></p>
+        <div class="actions row">
+          <button class="btn big" id="mmGo">🏁 RACE!</button>
+          <button class="btn ghost" id="mmCancel">Not yet</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- TOURNAMENT: CHAMPION -->
+  <main id="tChampion" class="screen">
+    <canvas id="champCanvas" aria-label="The champion celebrates with fireworks"></canvas>
+    <div class="actions row">
+      <button class="btn" id="champSing">🎤 Sing it again!</button>
+      <button class="btn ghost" id="champBracket">📋 Bracket</button>
+      <button class="btn ghost" id="champCsv">⬇ Export CSV</button>
+      <button class="btn ghost" id="champNew">🆕 New tournament</button>
+    </div>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

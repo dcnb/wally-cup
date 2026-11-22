@@ -1,0 +1,10 @@
+{
+  "name": "wally-cup",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "balance": "node test/balance.mjs",
+    "start": "python3 -m http.server 8080",
+    "test:bracket": "node test/bracket.mjs"
+  }
+}

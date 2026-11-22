@@ -1,0 +1,113 @@
+// Silly, made-up facts the announcer reads before each race. {n} becomes the racer's name.
+// None of these reveal stats. Add as many weird ones as you like!
+export const FACTS = {
+  wallace: [
+    '{n} likes corn!',
+    '{n} once tried to race a squirrel and lost.',
+    '{n} sleeps with the headlights on.',
+    '{n} thinks every road is a runway.',
+    '{n} has never once been to the dentist.',
+    '{n} says the secret ingredient is lime pudding.',
+  ],
+  agnes: [
+    '{n} collects tiny hats for bugs.',
+    '{n} is afraid of puddles, but races through them anyway.',
+    '{n} talks to flowers on the dashboard.',
+    '{n} believes pink is a flavor.',
+    '{n} once honked at a cloud for being too slow.',
+    '{n} brings a sandwich to every race.',
+  ],
+  kristin: [
+    '{n} has seven snacks hidden in the glove box.',
+    '{n} thinks mountains are just very big speed bumps.',
+    '{n} knows every campsite by its smell.',
+    '{n} has never gotten lost, only taken scenic routes.',
+    '{n} carries a spare pair of wool socks.',
+    '{n} likes to hum while going uphill.',
+  ],
+  devin: [
+    '{n} drinks tea with a pinky out.',
+    '{n} has a favorite puddle.',
+    '{n} thinks mud is a spa treatment.',
+    '{n} has a very fancy horn that plays one note.',
+    '{n} once got a parking ticket in a forest.',
+    '{n} whistles when no one is looking.',
+  ],
+  tyson: [
+    '{n} is the worst.',
+    '{n} is like way worse than everyone.',
+    '{n} is shorter than Devin.',
+    '{n} smells like cheese.',
+    '{n} takes his fluffy blanket everywhere he goes.',
+  ],
+  kady: [
+    '{n} runs on pure electricity and good vibes.',
+    '{n} hums quietly so nobody hears the plan.',
+    '{n} has never met a charging cable she did not like.',
+    '{n} is a MAGA Republican.',
+    '{n} thinks gas stations are old-fashioned museums.',
+    '{n} is dramatically quiet.',
+  ],
+  nolan: [
+    '{n} loves moving dirt from one place to another place.',
+    '{n} once carried a pile of spaghetti by accident.',
+    '{n} beeps in reverse just for fun.',
+    '{n} thinks every hill is a challenge.',
+    '{n} has a very tiny fan club of pigeons.',
+    '{n} believes a good pile of gravel is the best gift.',
+  ],
+  jack: [
+    '{n} is made of triangles and bad decisions.',
+    '{n} cannot do a three-point turn, only a seven-point turn.',
+    '{n} once scared a bird with a very sharp corner.',
+    '{n} thinks round is for wimps.',
+    '{n} has been called a shiny refrigerator on wheels.',
+    '{n} folds a paper airplane before every race.',
+  ],
+  josie: [
+    '{n} plays the same song every single time.',
+    '{n} has a freezer full of secrets.',
+    '{n} once got chased by a hundred happy children.',
+    '{n} thinks every road ends at a sprinkle.',
+    '{n} is always a little bit cold and a little bit sticky.',
+    '{n} will race for a sprinkle.',
+  ],
+  nancy: [
+    '{n} eats trucks for breakfast.',
+    '{n} thinks regular roads are just for little cars.',
+    '{n} once jumped over a barn, just because.',
+    '{n} has four wheels taller than a doorway.',
+    '{n} can squash a pile of pancakes in one stomp.',
+    '{n} flexes at traffic cones.',
+  ],
+  rufus: [
+    '{n} is a very good boy.',
+    '{n} will race for a tennis ball.',
+    '{n} has never met a stranger, only friends who have not been introduced.',
+    '{n} thinks the finish line is a squirrel.',
+    '{n} wags his tail whenever he goes around a corner.',
+    '{n} buries spare parts in the backyard.',
+    '{n} has strong opinions about the mail carrier.',
+    '{n} would like a belly rub at the next pit stop.',
+  ],
+  ro: [
+    '{n} knits tiny sweaters for the other cars.',
+    '{n} names every pothole it meets.',
+    '{n} thinks every road trip needs a bean bag chair.',
+    '{n} has a bumper sticker for every state, and several for states that do not exist.',
+    '{n} makes the best peace sign in the whole race.',
+    '{n} once hugged a tree to say thank you.',
+  ],
+};
+
+export const SPARE_FACTS = [
+  '{n} is afraid of speed bumps, but only on Tuesdays.',
+  '{n} once raced a snail, and the snail won.',
+  '{n} thinks bubbles are tiny moons.',
+  '{n} has a secret handshake with the finish line.',
+];
+
+export function factFor(car) {
+  const pool = FACTS[car.id] || SPARE_FACTS;
+  return pool[(Math.random() * pool.length) | 0].replaceAll('{n}', car.name);
+}
