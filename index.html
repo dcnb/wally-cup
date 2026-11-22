@@ -84,6 +84,7 @@
     </div>
     <div class="t-roster" id="tRoster"></div>
     <div class="actions"><button class="btn big" id="tBuild">🎲 DRAW THE BRACKET</button></div>
+    <div class="actions"><button class="btn small ghost" id="tImportSetup">⬆ Import a saved tournament (.json)</button></div>
   </main>
 
   <!-- TOURNAMENT: BRACKET -->
@@ -93,8 +94,8 @@
     <p class="sub" id="tStatus"></p>
     <div class="actions row t-tools">
       <button class="btn small" id="tNext">▶ Next match</button>
-      <button class="btn small ghost" id="tCsv">⬇ Export CSV</button>
       <button class="btn small ghost" id="tJson">⬇ Export JSON</button>
+      <button class="btn small ghost" id="tImport">⬆ Import JSON</button>
       <button class="btn small ghost" id="tCelebrate" hidden>🎆 Champion!</button>
       <button class="btn small ghost danger" id="tClear">🗑 New tournament</button>
     </div>
@@ -120,10 +121,23 @@
     <div class="actions row">
       <button class="btn" id="champSing">🎤 Sing it again!</button>
       <button class="btn ghost" id="champBracket">📋 Bracket</button>
-      <button class="btn ghost" id="champCsv">⬇ Export CSV</button>
+      <button class="btn ghost" id="champJson">⬇ Export JSON</button>
       <button class="btn ghost" id="champNew">🆕 New tournament</button>
     </div>
   </main>
+
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+    <div class="modal" id="importModal" hidden>
+      <div class="modal-card" role="dialog" aria-labelledby="imTitle">
+        <div class="mm-round" id="imTitle">Replace this tournament?</div>
+        <p class="mm-hype" id="imMsg"></p>
+        <div class="actions row">
+          <button class="btn" id="imGo">Replace it</button>
+          <button class="btn ghost" id="imCancel">Keep mine</button>
+        </div>
+      </div>
+    </div>
+    <div id="importToast" class="toast" role="status" hidden></div>
 
   <script type="module" src="js/main.js"></script>
 </body>

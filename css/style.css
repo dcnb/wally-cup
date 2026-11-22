@@ -15,6 +15,8 @@
   --display: "Alfa Slab One", "Rockwell", "Georgia", serif;
   --body: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
   --hard: 5px 5px 0 var(--ink);
+  /* Rainbow Road stripes (poster colors) */
+  --road-1: #e5483a; --road-2: #ff8a3c; --road-3: #ffc93c; --road-4: #6fb552; --road-5: #2e9aa0; --road-6: #3d6fb0;
   font-family: var(--body);
 }
 
@@ -183,12 +185,13 @@ canvas { display: block; width: 100%; height: auto; }
 .bracket { display: flex; gap: 28px; min-width: max-content; padding: 0 16px; align-items: stretch; text-align: left; }
 .b-round { display: flex; flex-direction: column; justify-content: space-around; gap: 14px; min-width: 230px; }
 .b-round h3 { font-size: 20px; color: var(--red); text-align: center; text-shadow: 2px 2px 0 var(--ink); margin-bottom: 4px; }
-.b-round.final h3 { font-size: 24px; background: linear-gradient(90deg, #ff3b3b, #ff9a2e, #ffe83a, #43e06b, #38b6ff, #8a5cff, #ff4fd8); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; -webkit-text-stroke: 1px var(--ink); }
+.b-round.final h3 { font-size: 24px; color: var(--mustard); }
 .b-matches { display: flex; flex-direction: column; justify-content: space-around; gap: 16px; flex: 1; }
 .match { background: var(--paper); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); font: inherit; color: var(--ink); padding: 0; text-align: left; position: relative; }
-.match.final { border-image: linear-gradient(90deg, #ff3b3b, #ff9a2e, #ffe83a, #43e06b, #38b6ff, #8a5cff, #ff4fd8) 1; border-width: 5px; }
+.match.final { border-width: 5px; box-shadow: 5px 5px 0 var(--ink); }
+.match.final::before, .modal-card.final::before { content: ''; display: block; height: 10px; border-bottom: 3px solid var(--ink); background: linear-gradient(to right, var(--road-1) 0 16.66%, var(--road-2) 0 33.33%, var(--road-3) 0 50%, var(--road-4) 0 66.66%, var(--road-5) 0 83.33%, var(--road-6) 0); }
 .match .trk { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; background: var(--teal-deep); color: var(--paper); padding: 2px 10px; }
-.match.final .trk { background: linear-gradient(90deg, #8a5cff, #ff4fd8); }
+.match.final .trk { background: var(--red-deep); }
 .match .side { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-weight: 700; font-size: 18px; border-top: 2px solid var(--ink); min-height: 38px; }
 .match .side .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .match .side.tbd { color: var(--ink-soft); font-weight: 500; font-style: italic; }
@@ -202,14 +205,15 @@ canvas { display: block; width: 100%; height: auto; }
 .modal { position: fixed; inset: 0; background: rgba(10, 8, 40, 0.75); display: grid; place-items: center; z-index: 40; padding: 16px; }
 .modal[hidden] { display: none; }
 .modal-card { background: var(--paper); border: 5px solid var(--ink); box-shadow: 8px 8px 0 var(--mustard); padding: 28px 24px; max-width: 640px; width: 100%; animation: rise 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-.modal-card.final { background: linear-gradient(135deg, #1a0a4d, #4b1d99); color: #fff; border-color: #ff4fd8; box-shadow: 8px 8px 0 #ffe83a; }
+.modal-card.final { background: var(--ink); color: var(--paper); border-color: var(--ink); box-shadow: 8px 8px 0 var(--mustard); padding-top: 0; }
+.modal-card.final::before { margin: 0 -24px 24px; }
 .mm-round { font-family: var(--display); font-size: 22px; letter-spacing: 1px; color: var(--red); text-transform: uppercase; }
-.final .mm-round { color: #ffe83a; }
+.final .mm-round { color: var(--mustard); }
 .mm-vs { font-family: var(--display); font-size: clamp(28px, 6vw, 46px); margin: 8px 0; }
 .mm-track { font-weight: 700; font-size: 18px; margin-bottom: 8px; }
 .mm-hype { font-size: 20px; font-weight: 600; font-style: italic; margin: 8px 0 16px; }
 .modal-card .btn.ghost { color: var(--ink); }
-#champCanvas { background: #05031a; border: 4px solid var(--ink); box-shadow: var(--hard); max-width: 100%; max-height: calc(100vh - 130px); width: auto; margin: 0 auto; }
+#champCanvas { background: #1d2145; border: 4px solid var(--ink); box-shadow: var(--hard); max-width: 100%; max-height: calc(100vh - 130px); width: auto; margin: 0 auto; }
 #tChampion { padding-top: 28px; }
 
 @media (max-width: 640px) {

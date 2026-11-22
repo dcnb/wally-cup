@@ -11,7 +11,7 @@ Hit **🏆 TOURNAMENT** on the home screen. Pick who's in (4+), and everyone is 
 
 - Click any lit-up match to run it, whenever you like. Progress is saved in this browser, so you can close the tab and come back.
 - Every race gets announcer hype; the champion is serenaded with fireworks.
-- **Export CSV / JSON** from the bracket screen, then **New tournament** (click twice) to clear and start over.
+- **Export JSON** from the bracket screen (or the champion screen) to save a copy, **Import JSON** to load one back, and **New tournament** (click twice) to clear and start over.
 - Tournament races use `TOURNEY_CONFIG` in `js/sim.js`, which is luckier than free play, so upsets happen.
 
 ## Run locally

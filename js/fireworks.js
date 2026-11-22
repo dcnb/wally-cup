@@ -1,5 +1,5 @@
 // Simple canvas fireworks: rockets rise, then burst into glowing sparks.
-const COLORS = ['#ff4d4d', '#ffd23f', '#43e06b', '#38b6ff', '#b388ff', '#ff4fd8', '#ffffff', '#ff9a2e'];
+const COLORS = ['#e5483a', '#ff8a3c', '#ffc93c', '#6fb552', '#2e9aa0', '#f6ecd6'];
 
 export class Fireworks {
   constructor() { this.rockets = []; this.sparks = []; }
@@ -13,14 +13,14 @@ export class Fireworks {
   burst(x, y, color, n = 46) {
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2 + Math.random() * 0.2, sp = 160 + Math.random() * 200;
-      this.sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: 1 + Math.random() * 0.7, color: Math.random() < 0.25 ? '#fff' : color });
+      this.sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: 1 + Math.random() * 0.7, color: Math.random() < 0.25 ? '#f6ecd6' : color });
     }
   }
 
   update(dt, onBurst) {
     for (const r of this.rockets) {
       r.x += r.vx * dt; r.y += r.vy * dt; r.life -= dt;
-      this.sparks.push({ x: r.x, y: r.y, vx: (Math.random() - 0.5) * 20, vy: 30, life: 0, max: 0.35, color: '#ffe9a8' });
+      this.sparks.push({ x: r.x, y: r.y, vx: (Math.random() - 0.5) * 20, vy: 30, life: 0, max: 0.35, color: '#ffc93c' });
       if (r.life <= 0) { r.dead = true; this.burst(r.x, r.y, r.color); onBurst?.(r); }
     }
     this.rockets = this.rockets.filter((r) => !r.dead);

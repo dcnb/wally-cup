@@ -33,15 +33,13 @@ export function showChampion({ canvas, car, runnerUp = null }) {
   }
 
   function draw() {
-    const bg = g.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#05031a'); bg.addColorStop(1, '#241055');
-    g.fillStyle = bg; g.fillRect(0, 0, W, H);
-    for (let i = 0; i < 60; i++) { // stars
-      g.fillStyle = `rgba(255,255,255,${0.3 + 0.7 * Math.abs(Math.sin(t * 2 + i))})`;
-      g.fillRect((i * 211) % W, (i * 97) % (H * 0.7), 2, 2);
+    g.fillStyle = '#1d2145'; g.fillRect(0, 0, W, H); // same ink stage as the podium screen
+    for (let i = 0; i < 50; i++) { // paper-cream stars
+      g.fillStyle = `rgba(246,236,214,${0.25 + 0.6 * Math.abs(Math.sin(t * 2 + i))})`;
+      g.fillRect((i * 211) % W, (i * 97) % (H * 0.7), 3, 3);
     }
     g.save(); g.translate(px, 330); g.rotate(t * 0.12);
-    for (let i = 0; i < 18; i++) { g.rotate(TAU / 18); g.fillStyle = i % 2 ? 'rgba(255,79,216,0.12)' : 'rgba(255,210,63,0.12)'; g.beginPath(); g.moveTo(0, 0); g.lineTo(760, -45); g.lineTo(760, 45); g.fill(); }
+    for (let i = 0; i < 18; i++) { g.rotate(TAU / 18); g.fillStyle = i % 2 ? 'rgba(229,72,58,0.28)' : 'rgba(255,201,60,0.16)'; g.beginPath(); g.moveTo(0, 0); g.lineTo(760, -45); g.lineTo(760, 45); g.fill(); }
     g.restore();
 
     fw.draw(g);

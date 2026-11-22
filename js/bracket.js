@@ -87,22 +87,36 @@ export function recordResult(t, matchId, winnerId, standings = null) {
   return t;
 }
 
-// ---- export ----
-const csvCell = (v) => {
-  const s = v == null ? '' : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-
-export function toCSV(t, nameOf = (x) => x, trackName = (x) => x) {
-  const head = ['tournament_id', 'round', 'match', 'track', 'racer_a', 'racer_b', 'winner', 'bye', 'order_played', 'played_at'];
-  const total = t.rounds.length;
-  const rows = allMatches(t).map((m) => [
-    t.id,
-    m.round === total - 1 ? 'Championship' : `Round ${m.round + 1}`,
-    m.index + 1, trackName(m.track), m.a ? nameOf(m.a) : '', m.b ? nameOf(m.b) : '',
-    m.winner ? nameOf(m.winner) : '', m.bye ? 'yes' : 'no', m.order ?? '', m.playedAt ?? '',
-  ]);
-  rows.push([]);
-  rows.push([t.id, 'CHAMPION', '', '', '', '', t.champion ? nameOf(t.champion) : '', '', '', '']);
-  return [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\n') + '\n';
+// ---- import ----
+// Checks an imported object really is a tournament this game could have made.
+// Returns the tournament, or throws an Error with a human-readable reason.
+export function validateTournament(t, carIds, trackIds) {
+  const bad = (msg) => { throw new Error(msg); };
+  if (!t || typeof t !== 'object' || Array.isArray(t)) bad('That file is not a tournament.');
+  if (typeof t.id !== 'string') bad('Missing tournament id.');
+  if (!Array.isArray(t.rounds) || !t.rounds.length || t.rounds.some((r) => !Array.isArray(r))) bad('Missing bracket rounds.');
+  const rounds = t.rounds.length;
+  const okCar = (x) => x === null || carIds.includes(x);
+  t.rounds.forEach((ms, r) => {
+    if (ms.length !== 2 ** (rounds - 1 - r)) bad(`Round ${r + 1} has the wrong number of matches.`);
+    ms.forEach((m, i) => {
+      if (!m || m.round !== r || m.index !== i || m.id !== `r${r}m${i}`) bad(`Match ${r + 1}.${i + 1} is malformed.`);
+      if (!trackIds.includes(m.track)) bad(`Unknown track "${m.track}".`);
+      if (!okCar(m.a) || !okCar(m.b) || !okCar(m.winner ?? null)) bad(`Unknown racer in match ${r + 1}.${i + 1}.`);
+      if (m.winner && m.winner !== m.a && m.winner !== m.b) bad(`Winner isn't in match ${r + 1}.${i + 1}.`);
+      if (r > 0) { // racers must be exactly the winners of the two feeder matches
+        const [fa, fb] = t.rounds[r - 1].slice(i * 2, i * 2 + 2);
+        if ((m.a ?? null) !== (fa.winner ?? null) || (m.b ?? null) !== (fb.winner ?? null)) bad(`Match ${r + 1}.${i + 1} doesn't match its feeder matches.`);
+      }
+    });
+  });
+  const fin = t.rounds[rounds - 1][0];
+  if ((t.champion ?? null) !== (fin.winner ?? null)) bad('Champion does not match the final.');
+  return {
+    ...t,
+    racers: Array.isArray(t.racers) ? t.racers.filter((x) => carIds.includes(x)) : [],
+    champion: t.champion ?? null,
+    runnerUp: t.runnerUp ?? null,
+    seq: Number.isFinite(t.seq) ? t.seq : 0,
+  };
 }

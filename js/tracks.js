@@ -104,7 +104,11 @@ function skyDesert(g, W, H, hz, scroll, t) {
   g.lineTo(W, hz + 4); g.fill();
 }
 
-const RAINBOW = ['#ff3b3b', '#ff9a2e', '#ffe83a', '#43e06b', '#38b6ff', '#8a5cff', '#ff4fd8'];
+// Rainbow Road uses the poster palette: tomato, orange, mustard, leaf green, teal, ink blue.
+// No violet or magenta anywhere on this track.
+const RAINBOW = ['#e5483a', '#ff8a3c', '#ffc93c', '#6fb552', '#2e9aa0', '#3d6fb0'];
+const STAR_COLS = ['#ffc93c', '#f6ecd6', '#ff8a3c'];
+const SPACE_INK = '#1d2145';
 
 function rainbowArc(g, x, y, r, bw, alpha) {
   g.save(); g.globalAlpha = alpha; g.lineWidth = bw;
@@ -114,8 +118,7 @@ function rainbowArc(g, x, y, r, bw, alpha) {
 
 function glowStar(g, x, y, r, rot, seed) {
   g.save(); g.translate(x, y); g.rotate(Math.sin(rot) * 0.4);
-  g.fillStyle = RAINBOW[seed % 7]; g.strokeStyle = '#fff'; g.lineWidth = 3; g.lineJoin = 'round';
-  g.shadowColor = RAINBOW[seed % 7]; g.shadowBlur = 14;
+  g.fillStyle = STAR_COLS[seed % 3]; g.strokeStyle = '#1b1b24'; g.lineWidth = 3; g.lineJoin = 'round';
   g.beginPath();
   for (let k = 0; k < 10; k++) { const a = (k * Math.PI) / 5 - Math.PI / 2, rr = k % 2 ? r * 0.45 : r; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
   g.closePath(); g.fill(); g.stroke();
@@ -123,27 +126,26 @@ function glowStar(g, x, y, r, rot, seed) {
 }
 
 function skyRainbow(g, W, H, hz, scroll, t) {
-  const gr = g.createLinearGradient(0, 0, 0, H);
-  gr.addColorStop(0, '#0b0630'); gr.addColorStop(0.5, '#2a0f6b'); gr.addColorStop(1, '#14073d');
-  g.fillStyle = gr; g.fillRect(0, 0, W, H);
-  // nebula glows
-  for (const [fx, fy, col] of [[0.2, 0.3, 'rgba(255,79,216,0.22)'], [0.7, 0.2, 'rgba(56,182,255,0.2)'], [0.9, 0.55, 'rgba(138,92,255,0.2)']]) {
-    const cx = ((fx * W - scroll * 0.02) % W + W) % W;
-    const ng = g.createRadialGradient(cx, hz * fy * 2, 10, cx, hz * fy * 2, hz * 1.3);
-    ng.addColorStop(0, col); ng.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = ng; g.fillRect(0, 0, W, H);
-  }
-  // twinkling stars
-  for (let i = 0; i < 70; i++) {
+  // flat night-ink poster sky, like the results stage
+  g.fillStyle = SPACE_INK; g.fillRect(0, 0, W, H);
+  // big slow sunburst behind the horizon, tone-on-tone
+  g.save(); g.translate(W * 0.5, hz * 1.1); g.rotate(scroll * 0.0004 + t * 0.03);
+  for (let k = 0; k < 20; k++) { g.rotate(TAU / 20); g.fillStyle = k % 2 ? 'rgba(229,72,58,0.10)' : 'rgba(255,201,60,0.07)'; g.beginPath(); g.moveTo(0, 0); g.lineTo(W, -60); g.lineTo(W, 60); g.fill(); }
+  g.restore();
+  // paper-cream stars that twinkle (no glow)
+  for (let i = 0; i < 60; i++) {
     const x = ((hash(i) * W - scroll * (0.03 + hash(i + 7) * 0.06)) % W + W) % W;
-    const y = hash(i + 1) * H, tw = 0.4 + 0.6 * Math.abs(Math.sin(t * (1 + hash(i + 2) * 2) + i));
-    g.fillStyle = `rgba(255,255,255,${tw.toFixed(2)})`; g.fillRect(x, y, 2 + hash(i + 3) * 2, 2 + hash(i + 3) * 2);
+    const y = hash(i + 1) * hz * 1.05, z = 2 + hash(i + 3) * 2.5;
+    g.fillStyle = Math.sin(t * (1 + hash(i + 2) * 2) + i) > -0.4 ? '#f6ecd6' : 'rgba(246,236,214,0.35)';
+    g.fillRect(x, y, z, z);
   }
-  // ringed planet
-  const px = ((W * 0.78 - scroll * 0.015) % (W + 300) + W + 300) % (W + 300) - 150, py = hz * 0.5;
-  ell(g, px, py, hz * 0.22, hz * 0.22, '#ff7ad9');
-  ell(g, px - hz * 0.06, py - hz * 0.06, hz * 0.1, hz * 0.1, 'rgba(255,255,255,0.3)');
-  g.strokeStyle = 'rgba(255,230,120,0.85)'; g.lineWidth = 5; g.beginPath(); g.ellipse(px, py, hz * 0.42, hz * 0.1, -0.35, 0, TAU); g.stroke();
+  // flat ringed planet, ink-outlined like the rest of the cartoon
+  const px = ((W * 0.78 - scroll * 0.015) % (W + 300) + W + 300) % (W + 300) - 150, py = hz * 0.5, pr = hz * 0.22;
+  g.strokeStyle = '#1b1b24'; g.lineWidth = 4;
+  g.beginPath(); g.ellipse(px, py, pr * 1.95, pr * 0.45, -0.35, Math.PI, TAU); g.strokeStyle = '#f6ecd6'; g.stroke(); // back of ring
+  g.beginPath(); g.arc(px, py, pr, 0, TAU); g.fillStyle = '#e5483a'; g.fill(); g.strokeStyle = '#1b1b24'; g.stroke();
+  g.fillStyle = '#ff8a3c'; g.beginPath(); g.arc(px, py, pr * 0.78, Math.PI * 0.15, Math.PI * 0.95); g.fill();
+  g.beginPath(); g.ellipse(px, py, pr * 1.95, pr * 0.45, -0.35, 0, Math.PI); g.strokeStyle = '#f6ecd6'; g.lineWidth = 6; g.stroke(); // front of ring
 }
 
 function skySea(g, W, H, hz, scroll, t) {
@@ -232,19 +234,16 @@ export function drawLaneGround(g, track, x, y, w, h, scroll, t, lane) {
     g.fillStyle = 'rgba(160,100,40,0.18)';
     tiles(90, scroll, w, 40, (i, sx) => { ell(g, sx, y + h * (0.65 + hash(i + lane * 7) * 0.3), 18 + hash(i) * 14, 3, 'rgba(160,100,40,0.18)'); });
   } else if (track.id === 'rainbow') {
-    const gr = g.createLinearGradient(0, y, 0, y + h);
-    gr.addColorStop(0, '#1a0a4d'); gr.addColorStop(1, '#0d0630');
-    g.fillStyle = gr; g.fillRect(x, y, w, h);
-    // the glowing rainbow road itself: slanted bands that stream past
-    const bw = 46;
+    g.fillStyle = SPACE_INK; g.fillRect(x, y, w, h);
+    // the road itself: slanted poster-color bands with ink seams streaming past
+    const bw = 46, n = RAINBOW.length;
     tiles(bw, scroll * 1.0, w, bw * 2, (i, sx) => {
-      g.fillStyle = RAINBOW[((i % 7) + 7) % 7]; g.globalAlpha = 0.85;
+      g.fillStyle = RAINBOW[((i % n) + n) % n];
       g.beginPath(); g.moveTo(sx, y + h * 0.18); g.lineTo(sx + bw * 0.7, y + h * 0.18); g.lineTo(sx + bw * 0.7 - 14, y + h); g.lineTo(sx - 14, y + h); g.closePath(); g.fill();
+      g.strokeStyle = '#1b1b24'; g.lineWidth = 3; g.stroke();
     });
-    g.globalAlpha = 1;
-    const eg = g.createLinearGradient(x, 0, x + w, 0);
-    RAINBOW.forEach((c, k) => eg.addColorStop(k / 6, c));
-    g.fillStyle = eg; g.fillRect(x, y + h * 0.14, w, 5);
+    g.fillStyle = '#1b1b24'; g.fillRect(x, y + h * 0.14, w, 8);       // curb: ink with a cream stripe
+    g.fillStyle = '#f6ecd6'; g.fillRect(x, y + h * 0.14 + 2, w, 3);
   } else if (track.id === 'sea') {
     const gr = g.createLinearGradient(0, y, 0, y + h);
     gr.addColorStop(0, 'rgba(231,206,150,0.0)'); gr.addColorStop(0.35, '#e8d09a'); gr.addColorStop(1, '#c9ab70');
@@ -437,7 +436,7 @@ export function drawZoneGate(g, zone, x, y, h) {
 // A stunt ramp. Cars launch from its lip.
 export function drawRamp(g, x, groundY, laneH, track) {
   const w = laneH * 0.62, hh = laneH * 0.26;
-  const col = track.id === 'desert' ? '#c98a4a' : track.id === 'sea' ? '#ff7a6b' : track.id === 'rainbow' ? '#ff4fd8' : '#8a5a2e';
+  const col = track.id === 'desert' ? '#c98a4a' : track.id === 'sea' ? '#ff7a6b' : track.id === 'rainbow' ? '#ffc93c' : '#8a5a2e';
   g.save(); g.lineJoin = 'round';
   g.translate(x, groundY);
   g.fillStyle = col; g.strokeStyle = '#1b1b24'; g.lineWidth = 3.5;
@@ -465,7 +464,7 @@ export function drawZoneBanner(g, zone, x0, x1, y, active) {
 export function drawTint(g, track, W, H, p) {
   let c;
   if (track.id === 'desert') c = `rgba(255,110,40,${(p * 0.28).toFixed(3)})`;
-  else if (track.id === 'rainbow') c = `rgba(138,92,255,${(p * 0.15).toFixed(3)})`;
+  else if (track.id === 'rainbow') c = `rgba(229,72,58,${(p * 0.12).toFixed(3)})`;
   else if (track.id === 'sea') c = `rgba(0,20,90,${(p * 0.3).toFixed(3)})`;
   else c = `rgba(230,140,40,${(p * 0.2).toFixed(3)})`;
   g.fillStyle = c; g.fillRect(0, 0, W, H);
@@ -484,7 +483,7 @@ export function drawAmbient(g, track, W, H, scroll, t) {
     for (let i = 0; i < 22; i++) {
       const x = ((hash(i) * W - scroll * 0.8 + t * 30) % W + W) % W;
       const y = (hash(i + 1) * H + t * (20 + hash(i + 2) * 40)) % H;
-      g.fillStyle = RAINBOW[i % 7]; g.globalAlpha = 0.5 + 0.5 * Math.abs(Math.sin(t * 3 + i));
+      g.fillStyle = i % 2 ? '#f6ecd6' : '#ffc93c'; g.globalAlpha = 0.5 + 0.5 * Math.abs(Math.sin(t * 3 + i));
       g.fillRect(x, y, 4, 4);
     }
     g.globalAlpha = 1;

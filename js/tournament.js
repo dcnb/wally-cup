@@ -1,6 +1,6 @@
 // Tournament mode: setup, bracket screen, match flow, export, champion celebration.
 import { CARS, TRACKS } from './data.js';
-import { buildBracket, isReady, nextReady, recordResult, toCSV, roundCount } from './bracket.js';
+import { buildBracket, isReady, nextReady, recordResult, roundCount, validateTournament } from './bracket.js';
 import { loadTournament, saveTournament, clearTournament, downloadFile } from './storage.js';
 import { startRace } from './race.js';
 import { TOURNEY_CONFIG } from './sim.js';
@@ -137,7 +137,6 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
 
   // ---------- export / clear ----------
   const stamp = () => new Date().toISOString().slice(0, 10);
-  const exportCSV = () => { if (t) downloadFile(`wally-cup-${stamp()}.csv`, toCSV(t, (id) => car(id).name, (id) => track(id).name), 'text/csv'); };
   const exportJSON = () => { if (t) downloadFile(`wally-cup-${stamp()}.json`, JSON.stringify(t, null, 2), 'application/json'); };
 
   function armClear(btn, label) {
@@ -150,6 +149,45 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
     btn.dataset.armed = '1'; btn.textContent = '⚠ Click again to erase';
     confirmTimer = setTimeout(() => { delete btn.dataset.armed; btn.textContent = label; }, 4000);
   }
+
+  // ---------- import ----------
+  let importTimer = 0, pending = null;
+  function note(msg) {
+    const el = $('importToast'); el.textContent = msg; el.hidden = false;
+    clearTimeout(importTimer); importTimer = setTimeout(() => (el.hidden = true), 5000);
+  }
+  const summary = (x) => {
+    const total = x.rounds.flat().filter((m) => !m.bye).length, done = x.rounds.flat().filter((m) => m.winner && !m.bye).length;
+    return x.champion ? `finished, won by ${car(x.champion).name}` : `${done} of ${total} races run`;
+  };
+  function applyImport(x) {
+    t = x; saveTournament(t); pending = null;
+    $('importModal').hidden = true;
+    note(`Imported! Tournament ${summary(t)}.`);
+    openBracket();
+  }
+  async function onFile(file) {
+    if (!file) return;
+    let x;
+    try {
+      if (file.size > 2e6) throw new Error('That file is too big to be a tournament.');
+      let parsed;
+      try { parsed = JSON.parse(await file.text()); } catch { throw new Error("That isn't valid JSON."); }
+      x = validateTournament(parsed, CARS.map((c) => c.id), TRACKS.map((tr) => tr.id));
+    } catch (err) { sfx.nope(); note(`Couldn't import: ${err.message}`); return; }
+    if (t && !t.champion || (t && t.champion && t.id !== x.id)) {
+      pending = x;
+      $('imMsg').textContent = `You have a tournament saved here (${summary(t)}). Importing replaces it with one that's ${summary(x)}. Export first if you want to keep it.`;
+      $('importModal').hidden = false;
+      $('imCancel').focus();
+    } else applyImport(x);
+  }
+  const pickFile = () => { sfx.unlock(); $('importFile').value = ''; $('importFile').click(); };
+  $('tImport').addEventListener('click', pickFile);
+  $('tImportSetup').addEventListener('click', pickFile);
+  $('importFile').addEventListener('change', (e) => onFile(e.target.files[0]));
+  $('imGo').addEventListener('click', () => pending && applyImport(pending));
+  $('imCancel').addEventListener('click', () => { pending = null; $('importModal').hidden = true; });
 
   // ---------- wiring ----------
   $('tourneyBtn').addEventListener('click', () => {
@@ -170,9 +208,8 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
   $('mmCancel').addEventListener('click', closeModal);
   $('matchModal').addEventListener('click', (e) => { if (e.target.id === 'matchModal') closeModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('matchModal').hidden) closeModal(); });
-  $('tCsv').addEventListener('click', exportCSV);
   $('tJson').addEventListener('click', exportJSON);
-  $('champCsv').addEventListener('click', exportCSV);
+  $('champJson').addEventListener('click', exportJSON);
   $('tClear').addEventListener('click', (e) => armClear(e.currentTarget, '🗑 New tournament'));
   $('champNew').addEventListener('click', (e) => armClear(e.currentTarget, '🆕 New tournament'));
   $('tCelebrate').addEventListener('click', openChampion);
