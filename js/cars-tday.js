@@ -159,17 +159,22 @@ export const DRAW_TDAY = {
     wheel(g, 52, 16, a); wheel(g, 150, 16, a);
     return { x: 104, y: -38, s: 0.8 };
   },
-  // Wallace: a Lego brick racer with a tiny anchor sculpture
+  // Wallace: a battleship on wheels (tonight's game is Battleship)
   wallace(g, c, a) {
-    rrect(g, 20, -58, 160, 42, 5, c, INK, 3);
-    for (const x of [46, 84, 122, 156]) { rrect(g, x - 11, -70, 22, 14, 3, shade(c, 0.12), INK, 2.5); ellipse(g, x, -70, 11, 4, shade(c, 0.3), INK, 2); }
-    // anchor (a lego sculpture) on the side
-    g.strokeStyle = '#e9edf3'; g.lineWidth = 4; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(44, -50); g.lineTo(44, -26); g.moveTo(36, -43); g.lineTo(52, -43); g.moveTo(34, -34); g.quadraticCurveTo(44, -20, 54, -34); g.stroke();
-    circ(g, 44, -52, 3.5, '#e9edf3', 2);
-    ellipse(g, 188, -34, 6, 6, '#fff7b0'); rrect(g, 182, -24, 14, 6, 2, CHROME);
+    poly(g, [[8, -34], [190, -34], [178, -14], [24, -14]], c, INK, 3);              // hull
+    rrect(g, 22, -26, 156, 5, 2, shade(c, -0.25), null);                              // waterline stripe
+    rrect(g, 60, -50, 80, 16, 3, '#c9ced6', INK, 3);                                  // deck
+    rrect(g, 88, -70, 38, 22, 3, '#aab1bc', INK, 3);                                  // bridge
+    for (const x of [96, 107, 118]) rrect(g, x - 3, -64, 6, 6, 1, '#7fc4ff', INK, 1.5); // windows
+    rrect(g, 104, -88, 4, 18, 1, '#26262b', INK, 1.5);                                // mast
+    poly(g, [[108, -88], [124, -84], [108, -80]], '#e5483a', INK, 2);                 // flag
+    // front and rear gun turrets with barrels
+    ellipse(g, 154, -50, 14, 9, '#8a919d', INK, 3); rrect(g, 160, -54, 36, 6, 3, '#4a505a', INK, 2.5);
+    ellipse(g, 44, -50, 12, 8, '#8a919d', INK, 3); rrect(g, 24, -53, 28, 5, 2.5, '#4a505a', INK, 2.5);
+    // battleship peg
+    circ(g, 70, -58, 4, '#e5483a', 2);
     wheel(g, 52, 16, a); wheel(g, 150, 16, a);
-    return { x: 118, y: -40, s: 0.8 };
+    return { x: 107, y: -60, s: 0.5 };
   },
   // Rufus: a turkey-drumstick dog car (still a very good boy)
   rufus(g, c, a) {

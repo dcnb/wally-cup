@@ -17,7 +17,7 @@ export const CARS = [
   { id: 'kristin', name: 'Kristin', quip: "Packed snacks. Packed ambition. Whipped cream.", type: 'Pumpkin pie slice', speed: 1, handling: 4, offroad: 4, intangibles: 3, color: '#e8903a', voice: H, pitch: 330 },
   { id: 'ro', name: 'Grandma Ro', quip: "Peace, love, and cheese ball.", type: 'Cheeseball', speed: 1, handling: 3, offroad: 3, intangibles: 3, color: '#b99be8', voice: H, pitch: 700 },
   { id: 'agnes', name: 'Agnes', quip: "Cute. Suspiciously cute. Sprinkles.", type: 'Cupcake', speed: 2, handling: 4, offroad: 3, intangibles: 5, color: '#ff3fa4', voice: H, pitch: 600 },
-  { id: 'wallace', name: 'Wallace', quip: "Zero to zoom. Brick by brick.", type: 'Lego brick racer', speed: 5, handling: 5, offroad: 5, intangibles: 5, color: '#9be22b', voice: H, pitch: 440 },
+  { id: 'wallace', name: 'Wallace', quip: "Zero to zoom. Brick by brick.", type: 'Battleship on wheels', speed: 5, handling: 5, offroad: 5, intangibles: 5, color: '#9be22b', voice: H, pitch: 440 },
   { id: 'rufus', name: 'Rufus', quip: "Good boy. Fast enough. Has a drumstick.", type: 'Drumstick dog', speed: 3, handling: 4, offroad: 3, intangibles: 3, color: '#d2a15f', voice: 'bark' },
   { id: 'fika', name: 'Fika', quip: "Small poodle. Big opinions. Black as coffee.", type: 'Poodle on a roll', speed: 3, handling: 4, offroad: 2, intangibles: 4, color: '#26262b', voice: 'yip' },
 ];
@@ -184,8 +184,8 @@ export const FACTS = {
     '{n} thinks every cupcake deserves a cherry and a getaway car.',
   ],
   wallace: [
-    '{n} placed the lego anchor sculptures, and they are very good anchors.',
-    '{n} helped set the table, brick by brick.',
+    '{n} brought battleship sculptures to the table, and they are very seaworthy.',
+    '{n} helped set the table and sank the competition, B7 and all.',
     '{n} likes corn!',
     '{n} thinks every road is a runway.',
     '{n} sleeps with the headlights on.',
