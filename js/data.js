@@ -13,11 +13,11 @@ export const CARS = [
   { id: 'josie', quip: "Ding-a-ling, here I come!", name: 'Josie', speed: 2, handling: 1, offroad: 1, intangibles: 3, type: 'Ice cream truck', color: '#e9f6ff', accent: '#79c8f0' },
   { id: 'nancy', quip: "Crushes cars. Also cookies.", name: 'Grandma Nancy', speed: 3, handling: 1, offroad: 1, intangibles: 3, type: 'Monster truck', color: '#ffd21f' },
   { id: 'ro', quip: "Peace, love, and tailgating.", name: 'Grandma Ro', speed: 1, handling: 3, offroad: 3, intangibles: 3, type: 'VW van', color: '#b99be8' },
-  { id: 'rufus', quip: "Good boy. Fast enough. Very good boy.", name: 'Rufus', speed: 3, handling: 4, offroad: 3, intangibles: 3, type: 'Dog car', color: '#d2a15f' },
-  { id: 'juju', quip: "Everyone is my best friend. Yes, you too.", name: 'Juju', speed: 3, handling: 3, offroad: 4, intangibles: 4, type: 'Golden retriever car', color: '#e9a93a' },
+  { id: 'kim', quip: "Fast. Loud. Very, very red.", name: 'Kim', speed: 5, handling: 4, offroad: 1, intangibles: 3, type: 'Lamborghini', color: '#ff2a1a', pitch: 330 },
+  { id: 'rufus', quip: "Good boy. Fast enough. Very good boy.", name: 'Rufus', speed: 3, handling: 4, offroad: 3, intangibles: 3, type: 'Dog car', color: '#d2a15f', voice: 'bark' },
+  { id: 'juju', quip: "Everyone is my best friend. Yes, you too.", name: 'Juju', speed: 3, handling: 3, offroad: 4, intangibles: 4, type: 'Golden retriever car', color: '#e9a93a', pitch: 520 },
   { id: 'archie', quip: "Chonky boss. Ignores you. Ate your lunch.", name: 'Archie', speed: 2, handling: 2, offroad: 3, intangibles: 4, type: 'Counter-surfing dog car', color: '#2b2b35', voice: 'woof' },
   { id: 'chuck', quip: "MEOW. Meow. MEOW MEOW.", name: 'Chuck', speed: 3, handling: 4, offroad: 2, intangibles: 3, type: 'Loudmouth tabby cat car', color: '#7a808c', voice: 'meow' },
-  { id: 'kim', quip: "Fast. Loud. Very, very red.", name: 'Kim', speed: 5, handling: 4, offroad: 1, intangibles: 3, type: 'Lamborghini', color: '#ff2a1a' },
 ];
 
 // `weights` say how much each car stat matters on that track (they sum to 1).
