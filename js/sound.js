@@ -64,6 +64,18 @@ export const sfx = {
       [0, 0.2].forEach((d) => { tone({ f: 420 * hi, f2: 190 * hi, dur: voice === 'yip' ? 0.09 : 0.12, type: 'sawtooth', vol: 0.12, delay: d }); noise({ dur: 0.1, vol: 0.06, freq: 900 * hi, delay: d }); });
       return;
     }
+    if (voice === 'woof') { // big, deep, grumpy dog
+      [0, 0.28].forEach((d) => { tone({ f: 230, f2: 110, dur: 0.2, type: 'sawtooth', vol: 0.14, delay: d }); noise({ dur: 0.16, vol: 0.07, freq: 500, delay: d }); });
+      return;
+    }
+    if (voice === 'meow') { // loud, whiny cat: rise then fall, twice
+      [0, 0.45].forEach((d) => {
+        tone({ f: 520, f2: 980, dur: 0.14, type: 'sawtooth', vol: 0.09, delay: d });
+        tone({ f: 980, f2: 560, dur: 0.3, type: 'sawtooth', vol: 0.09, delay: d + 0.14 });
+        tone({ f: 1040, f2: 620, dur: 0.3, type: 'triangle', vol: 0.06, delay: d + 0.14 });
+      });
+      return;
+    }
     const base = car?.pitch ?? [440, 520, 330, 300, 250, 400, 140, 360, 700, 120, 280][i % 11];
     tone({ f: base, f2: base * 0.96, dur: 0.28, type: 'square', vol: 0.1 });
     tone({ f: base * 1.26, f2: base * 1.2, dur: 0.28, type: 'square', vol: 0.08 });

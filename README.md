@@ -20,6 +20,8 @@ python3 -m http.server 8080   # then open http://localhost:8080
 ```
 (ES modules need a web server; opening index.html directly from disk won't work.)
 
+**No server?** Double-click `play.html`. It loads a single bundled script (`dist/game.js`), so it works from disk. After editing anything in `js/`, run `npm run build` (or `node tools/bundle.mjs`) to refresh it. The Thanksgiving page still needs a server.
+
 ## Tweak it
 - `js/data.js` — cars (stats 1–5, colors) and tracks (what stats matter, hazard zones)
 - `js/sim.js` — `CONFIG` holds luck, spin-out and comeback knobs

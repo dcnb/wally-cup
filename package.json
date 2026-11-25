@@ -5,6 +5,7 @@
   "scripts": {
     "balance": "node test/balance.mjs",
     "start": "python3 -m http.server 8080",
-    "test:bracket": "node test/bracket.mjs"
+    "test:bracket": "node test/bracket.mjs",
+    "build": "node tools/bundle.mjs"
   }
 }

@@ -434,6 +434,131 @@ const DRAW = {
     return { x: 84, y: -75, s: 0.78 };
   },
 
+  // --- Archie: a big, round black dog. Counter-surfer, stolen drumstick in his mouth, zero regrets ---
+  archie(g, c, a) {
+    const light = shade(c, 0.55), mid = shade(c, 0.28), ear = shade(c, -0.35);
+    const wag = Math.sin(a * 1.3) * 0.3;
+    // stubby tail
+    g.save(); g.translate(14, -56); g.rotate(-0.7 + wag);
+    g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(-6, -20, 6, -32); g.quadraticCurveTo(12, -16, 10, 0); g.closePath();
+    g.fillStyle = c; g.fill(); g.lineWidth = 3; g.strokeStyle = '#1b1b24'; g.stroke();
+    g.restore();
+    // chonky round body
+    g.beginPath();
+    g.moveTo(10, -22); g.quadraticCurveTo(-2, -76, 44, -78); g.lineTo(114, -78);
+    g.quadraticCurveTo(152, -78, 152, -40); g.quadraticCurveTo(152, -12, 122, -12); g.lineTo(40, -12); g.quadraticCurveTo(10, -12, 10, -22);
+    g.closePath(); g.fillStyle = c; g.fill(); g.lineWidth = 3; g.strokeStyle = '#1b1b24'; g.stroke();
+    // belly and back sheen so the black reads as fur
+    g.beginPath(); g.ellipse(80, -26, 46, 11, 0, 0, Math.PI * 2); g.fillStyle = mid; g.fill();
+    g.strokeStyle = mid; g.lineWidth = 4; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(40, -70); g.quadraticCurveTo(76, -78, 112, -70); g.stroke();
+    // head + wide snout
+    ellipse(g, 152, -74, 29, 29, c);
+    rrect(g, 152, -68, 46, 30, 14, c);
+    rrect(g, 158, -52, 36, 13, 6, mid, null);
+    ellipse(g, 196, -58, 10, 8, '#0d0d12', '#1b1b24', 2);
+    ellipse(g, 193, -60, 2.6, 2, '#8a8fa3', null);
+    // crumbs on the snout
+    for (const [cx, cy] of [[172, -50], [180, -46], [166, -45]]) ellipse(g, cx, cy, 1.8, 1.8, '#e6b673', null);
+    // stolen drumstick, clamped in a very proud mouth
+    g.save(); g.translate(176, -40); g.rotate(0.35);
+    g.fillStyle = '#fff'; g.strokeStyle = '#1b1b24'; g.lineWidth = 2;
+    g.beginPath(); g.roundRect(14, -3, 22, 6, 3); g.fill(); g.stroke();
+    ellipse(g, 38, -4, 4, 4, '#fff', '#1b1b24', 2); ellipse(g, 38, 4, 4, 4, '#fff', '#1b1b24', 2);
+    ellipse(g, 6, 0, 17, 11, '#b8681f');
+    g.strokeStyle = '#7d4412'; g.lineWidth = 2; g.beginPath(); g.moveTo(-4, -4); g.quadraticCurveTo(4, 2, -2, 6); g.stroke();
+    g.restore();
+    // smug half-lidded eye
+    ellipse(g, 170, -82, 5, 5, '#fff'); ellipse(g, 172, -81, 2.6, 2.6, '#1b1b24', null);
+    g.fillStyle = c; g.beginPath(); g.moveTo(163, -88); g.lineTo(177, -88); g.lineTo(177, -82); g.lineTo(163, -82); g.closePath(); g.fill();
+    g.strokeStyle = '#1b1b24'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(163, -82); g.lineTo(177, -82.5); g.stroke();
+    // floppy ear
+    g.save(); g.translate(140, -94); g.rotate(0.25 + wag * 0.15);
+    g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(-24, 6, -18, 38); g.quadraticCurveTo(0, 44, 13, 22); g.quadraticCurveTo(15, 6, 0, 0);
+    g.fillStyle = ear; g.fill(); g.lineWidth = 3; g.strokeStyle = '#1b1b24'; g.stroke();
+    g.restore();
+    // gold boss collar and tag
+    g.strokeStyle = '#ffc93c'; g.lineWidth = 8; g.lineCap = 'butt';
+    g.beginPath(); g.moveTo(130, -82); g.quadraticCurveTo(142, -46, 136, -18); g.stroke();
+    ellipse(g, 140, -34, 6, 6, '#ffc93c');
+    // driver's window on the back
+    g.beginPath(); g.moveTo(50, -78); g.quadraticCurveTo(56, -102, 84, -102); g.quadraticCurveTo(112, -102, 116, -78); g.closePath();
+    g.fillStyle = GLASS; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#1b1b24'; g.stroke();
+    // roundel with an A
+    ellipse(g, 84, -40, 14, 14, '#ffc93c');
+    g.fillStyle = '#1b1b24'; g.font = '700 19px "Alfa Slab One", serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('A', 84, -39);
+    wheel(g, 52, 17, a, { rim: '#ffc93c' }); wheel(g, 142, 17, a, { rim: '#ffc93c' });
+    return { x: 84, y: -90, s: 0.78 };
+  },
+
+  // --- Chuck: a loud gray-and-black tabby cat car with a white belly. Mouth always open mid-meow ---
+  chuck(g, c, a) {
+    const dark = '#2a2c36', light = '#fbfaf5';
+    const swish = Math.sin(a * 1.1) * 0.25;
+    const open = (Math.sin(a * 2.2) + 1) / 2; // mouth flaps with the wheels
+    // tall curled tail with stripes
+    g.save(); g.translate(14, -46); g.rotate(-0.15 + swish);
+    g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(-26, -20, -14, -52); g.quadraticCurveTo(-8, -66, 4, -60); g.quadraticCurveTo(-4, -54, -2, -40); g.quadraticCurveTo(2, -18, 12, -4); g.closePath();
+    g.fillStyle = c; g.fill(); g.lineWidth = 3; g.strokeStyle = '#1b1b24'; g.stroke();
+    g.save(); g.clip(); g.fillStyle = dark; g.fillRect(-30, -70, 40, 22); g.restore();
+    g.lineWidth = 3; g.strokeStyle = '#1b1b24'; g.stroke();
+    g.strokeStyle = dark; g.lineWidth = 4; g.lineCap = 'butt';
+    for (const [x1, y1, x2, y2] of [[-22, -18, -7, -22], [-22, -32, -6, -35]]) { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+    g.restore();
+    // sleek torso
+    g.beginPath();
+    g.moveTo(12, -22); g.quadraticCurveTo(6, -62, 40, -66); g.lineTo(120, -66);
+    g.quadraticCurveTo(146, -66, 148, -44); g.lineTo(148, -22); g.closePath();
+    g.fillStyle = c; g.fill(); g.lineWidth = 3; g.strokeStyle = '#1b1b24'; g.stroke();
+    // dark tabby stripes down the back, white belly and chest
+    g.strokeStyle = dark; g.lineWidth = 5; g.lineCap = 'round';
+    for (const x of [34, 52, 70, 88, 106]) { g.beginPath(); g.moveTo(x, -64); g.quadraticCurveTo(x + 3, -54, x - 1, -42); g.stroke(); }
+    g.beginPath(); g.moveTo(22, -22); g.quadraticCurveTo(70, -36, 134, -22); g.closePath(); g.fillStyle = light; g.fill();
+    g.beginPath(); g.moveTo(118, -24); g.quadraticCurveTo(136, -44, 148, -48); g.lineTo(148, -22); g.closePath(); g.fill();
+    // head (round, cat-sized)
+    ellipse(g, 152, -68, 28, 26, c);
+    // pointy ears (inner pink)
+    poly(g, [[132, -86], [134, -112], [152, -92]], c);
+    poly(g, [[158, -92], [172, -112], [178, -84]], c);
+    poly(g, [[135, -90], [136, -105], [147, -92]], '#ff9bb0', null);
+    poly(g, [[163, -92], [171, -105], [174, -88]], '#ff9bb0', null);
+    // forehead stripes and cheek stripes
+    g.strokeStyle = dark; g.lineWidth = 3.5; g.lineCap = 'round';
+    for (const dx of [-5, 3, 11]) { g.beginPath(); g.moveTo(152 + dx, -92); g.lineTo(152 + dx + 1, -83); g.stroke(); }
+    for (const dy of [-62, -54]) { g.beginPath(); g.moveTo(130, dy); g.lineTo(142, dy + 2); g.stroke(); }
+    // muzzle
+    ellipse(g, 176, -58, 15, 12, light);
+    ellipse(g, 188, -64, 4, 3, '#ff7b9c', '#1b1b24', 1.5);
+    // wide open meowing mouth
+    g.beginPath(); g.ellipse(182, -50, 7, 2 + open * 8, 0, 0, Math.PI * 2);
+    g.fillStyle = '#5b1020'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#1b1b24'; g.stroke();
+    if (open > 0.4) ellipse(g, 182, -46 + open * 2, 4, 2.6, '#ff7b9c', null);
+    // whiskers
+    g.strokeStyle = '#1b1b24'; g.lineWidth = 1.6;
+    for (const dy of [-4, 2]) { g.beginPath(); g.moveTo(188, -58 + dy * 0.5); g.lineTo(214, -62 + dy * 2.6); g.stroke(); }
+    // loud: little sound arcs fanning out from the mouth
+    g.strokeStyle = '#1b1b24'; g.lineWidth = 2.5; g.lineCap = 'round';
+    for (const [r, al] of [[16, 1], [26, 0.6]]) { g.globalAlpha = al * (0.4 + open * 0.6); g.beginPath(); g.arc(188, -50, r, -0.5, 0.7); g.stroke(); }
+    g.globalAlpha = 1;
+    // fierce green slit eye
+    ellipse(g, 168, -74, 6, 5, '#b8f06a');
+    g.fillStyle = '#1b1b24'; g.beginPath(); g.ellipse(169.5, -74, 1.5, 4.4, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#1b1b24'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(160, -82); g.lineTo(176, -77); g.stroke(); // annoyed brow
+    // red collar with a gold lucky coin
+    g.strokeStyle = '#d6291a'; g.lineWidth = 7; g.lineCap = 'butt';
+    g.beginPath(); g.moveTo(130, -76); g.quadraticCurveTo(140, -48, 136, -24); g.stroke();
+    ellipse(g, 139, -38, 7, 7, '#ffc93c', '#1b1b24', 2);
+    rrect(g, 136, -41, 6, 6, 1, '#d6291a', '#1b1b24', 1.5);
+    // driver's window on the back
+    g.beginPath(); g.moveTo(52, -66); g.quadraticCurveTo(58, -88, 84, -88); g.quadraticCurveTo(110, -88, 114, -66); g.closePath();
+    g.fillStyle = GLASS; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#1b1b24'; g.stroke();
+    // lucky red roundel with a C
+    ellipse(g, 86, -40, 13, 13, '#d6291a');
+    g.fillStyle = '#ffd96a'; g.font = '700 18px "Alfa Slab One", serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('C', 86, -39);
+    wheel(g, 52, 17, a, { rim: '#ffc93c' }); wheel(g, 142, 17, a, { rim: '#ffc93c' });
+    return { x: 84, y: -77, s: 0.78 };
+  },
+
   // --- Kim: bright red Lamborghini. Low, wide, wedge-shaped. ---
   kim(g, c, a) {
     const dark = shade(c, -0.45), hi = shade(c, 0.35);
