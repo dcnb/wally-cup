@@ -1,12 +1,12 @@
 // Tournament mode: setup, bracket screen, match flow, export, champion celebration.
 import { theme, factFor } from './theme.js';
-import { buildBracket, isReady, nextReady, recordResult, roundCount, validateTournament } from './bracket.js';
+import { buildBracket, isReady, nextReady, recordResult, roundCount, validateTournament, racersOf } from './bracket.js';
 import { loadTournament, saveTournament, clearTournament, downloadFile } from './storage.js';
 import { startRace } from './race.js';
 import { TOURNEY_CONFIG } from './sim.js';
 import { showChampion } from './champion.js';
 import { sfx } from './sound.js';
-import { announcer, LINES } from './announcer.js';
+import { announcer, LINES, pick } from './announcer.js';
 
 const $ = (id) => document.getElementById(id);
 const car = (id) => theme.CARS.find((c) => c.id === id);
@@ -58,7 +58,7 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
       for (const m of ms) {
         const el = document.createElement(isReady(m) ? 'button' : 'div');
         el.className = 'match' + (isReady(m) ? ' ready' : '') + (m.bye ? ' bye' : '') + (r === t.rounds.length - 1 ? ' final' : '');
-        el.innerHTML = `<div class="trk">${r === t.rounds.length - 1 ? theme.finalIcon + ' ' : ''}${track(m.track).name}</div>${side(m, m.a)}${side(m, m.b)}${isReady(m) ? '<span class="go">RACE!</span>' : ''}`;
+        el.innerHTML = `<div class="trk">${r === t.rounds.length - 1 ? theme.finalIcon + ' ' : ''}${track(m.track).name}</div>${side(m, m.a)}${side(m, m.b)}${m.c !== undefined ? side(m, m.c) : ''}${isReady(m) ? '<span class="go">RACE!</span>' : ''}`;
         if (isReady(m)) el.addEventListener('click', () => openModal(m));
         list.appendChild(el);
       }
@@ -76,8 +76,15 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
 
   // ---------- match modal (the hype card) ----------
   function hypeText(m) {
-    const a = car(m.a).name, b = car(m.b).name, tr = track(m.track).name;
+    const names = racersOf(m).map((id) => car(id).name), a = names[0], b = names[1], tr = track(m.track).name;
     const rn = LINES.roundName(m.round, roundCount(t));
+    if (names.length === 3) {
+      return pick([
+        `${rn}! Three racers, one spot in the next round! ${names[0]}, ${names[1]} and ${names[2]} take on ${tr}!`,
+        `A three-way showdown at ${tr}! ${names[0]}, ${names[1]} and ${names[2]}, and only the winner moves on!`,
+        `Triple trouble! ${names[0]}, ${names[1]} and ${names[2]} line up at ${tr}, and two of them are going home!`,
+      ], 'matchup3');
+    }
     return m.round === roundCount(t) - 1 ? LINES.finalHype(a, b) : LINES.matchup(a, b, rn, tr);
   }
 
@@ -86,7 +93,7 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
     const isFinal = m.round === roundCount(t) - 1;
     m._hype = hypeText(m);
     $('mmRound').textContent = isFinal ? `${theme.finalIcon} THE CHAMPIONSHIP ${theme.finalIcon}` : `${LINES.roundName(m.round, roundCount(t))} · Match ${m.index + 1}`;
-    $('mmVs').textContent = `${car(m.a).name}  vs  ${car(m.b).name}`;
+    $('mmVs').textContent = racersOf(m).map((id) => car(id).name).join('  vs  ');
     $('mmTrack').textContent = `📍 ${track(m.track).name}`;
     $('mmHype').textContent = `“${m._hype}”`;
     document.querySelector('.modal-card').classList.toggle('final', isFinal);
@@ -99,14 +106,14 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
   function runMatch() {
     const m = current;
     closeModal();
-    const cars = [car(m.a), car(m.b)];
+    const cars = racersOf(m).map(car);
     const tr = track(m.track);
     const isFinal = m.round === roundCount(t) - 1;
     const rn = LINES.roundName(m.round, roundCount(t));
     show('race');
     $('raceTitle').textContent = isFinal ? `${theme.finalIcon} CHAMPIONSHIP · ${tr.name}` : `${rn.replace(/^the /, '')} · ${tr.name}`;
     const intro = [
-      { lane: -1, html: `🎙️ ${isFinal ? 'THE CHAMPIONSHIP' : rn.toUpperCase()}: ${cars[0].name} vs ${cars[1].name}!`, text: m._hype },
+      { lane: -1, html: `🎙️ ${isFinal ? 'THE CHAMPIONSHIP' : rn.toUpperCase()}: ${cars.map((c) => c.name).join(' vs ')}!`, text: m._hype },
       ...cars.map((c, i) => { const f = factFor(c); return { lane: i, html: `Lane ${i + 1}: <b>${c.name}</b> — ${f.replace(c.name, '').trim() || f}`, text: `In lane ${i + 1} is ${c.name}. ${f}` }; }),
       { lane: -1, html: theme.readyHtml, text: LINES.ready() },
     ];

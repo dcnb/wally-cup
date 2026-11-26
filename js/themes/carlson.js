@@ -261,6 +261,7 @@ export const carlsonTheme = {
   cupName: 'Wally Cup',
   noun: 'car', nouns: 'cars',
   homeCols: 5,
+  threeWayStart: true, // tournament round 1 is a mix of 3-car and 2-car races, then head-to-head
   finalIcon: '🌈',
   champIcon: '🏆',
   shouts: ['BEEP!', 'MEOW!', 'WOOF!', 'HONK!'],

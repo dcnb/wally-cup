@@ -3183,13 +3183,13 @@ return { Confetti };
 __defs["./js/tournament.js"] = function () {
 // Tournament mode: setup, bracket screen, match flow, export, champion celebration.
 const { theme, factFor } = __req("./js/theme.js");
-const { buildBracket, isReady, nextReady, recordResult, roundCount, validateTournament } = __req("./js/bracket.js");
+const { buildBracket, isReady, nextReady, recordResult, roundCount, validateTournament, racersOf } = __req("./js/bracket.js");
 const { loadTournament, saveTournament, clearTournament, downloadFile } = __req("./js/storage.js");
 const { startRace } = __req("./js/race.js");
 const { TOURNEY_CONFIG } = __req("./js/sim.js");
 const { showChampion } = __req("./js/champion.js");
 const { sfx } = __req("./js/sound.js");
-const { announcer, LINES } = __req("./js/announcer.js");
+const { announcer, LINES, pick } = __req("./js/announcer.js");
 
 const $ = (id) => document.getElementById(id);
 const car = (id) => theme.CARS.find((c) => c.id === id);
@@ -3241,7 +3241,7 @@ function initTournament({ show, setRaceRun, setResultRun }) {
       for (const m of ms) {
         const el = document.createElement(isReady(m) ? 'button' : 'div');
         el.className = 'match' + (isReady(m) ? ' ready' : '') + (m.bye ? ' bye' : '') + (r === t.rounds.length - 1 ? ' final' : '');
-        el.innerHTML = `<div class="trk">${r === t.rounds.length - 1 ? theme.finalIcon + ' ' : ''}${track(m.track).name}</div>${side(m, m.a)}${side(m, m.b)}${isReady(m) ? '<span class="go">RACE!</span>' : ''}`;
+        el.innerHTML = `<div class="trk">${r === t.rounds.length - 1 ? theme.finalIcon + ' ' : ''}${track(m.track).name}</div>${side(m, m.a)}${side(m, m.b)}${m.c !== undefined ? side(m, m.c) : ''}${isReady(m) ? '<span class="go">RACE!</span>' : ''}`;
         if (isReady(m)) el.addEventListener('click', () => openModal(m));
         list.appendChild(el);
       }
@@ -3259,8 +3259,15 @@ function initTournament({ show, setRaceRun, setResultRun }) {
 
   // ---------- match modal (the hype card) ----------
   function hypeText(m) {
-    const a = car(m.a).name, b = car(m.b).name, tr = track(m.track).name;
+    const names = racersOf(m).map((id) => car(id).name), a = names[0], b = names[1], tr = track(m.track).name;
     const rn = LINES.roundName(m.round, roundCount(t));
+    if (names.length === 3) {
+      return pick([
+        `${rn}! Three racers, one spot in the next round! ${names[0]}, ${names[1]} and ${names[2]} take on ${tr}!`,
+        `A three-way showdown at ${tr}! ${names[0]}, ${names[1]} and ${names[2]}, and only the winner moves on!`,
+        `Triple trouble! ${names[0]}, ${names[1]} and ${names[2]} line up at ${tr}, and two of them are going home!`,
+      ], 'matchup3');
+    }
     return m.round === roundCount(t) - 1 ? LINES.finalHype(a, b) : LINES.matchup(a, b, rn, tr);
   }
 
@@ -3269,7 +3276,7 @@ function initTournament({ show, setRaceRun, setResultRun }) {
     const isFinal = m.round === roundCount(t) - 1;
     m._hype = hypeText(m);
     $('mmRound').textContent = isFinal ? `${theme.finalIcon} THE CHAMPIONSHIP ${theme.finalIcon}` : `${LINES.roundName(m.round, roundCount(t))} · Match ${m.index + 1}`;
-    $('mmVs').textContent = `${car(m.a).name}  vs  ${car(m.b).name}`;
+    $('mmVs').textContent = racersOf(m).map((id) => car(id).name).join('  vs  ');
     $('mmTrack').textContent = `📍 ${track(m.track).name}`;
     $('mmHype').textContent = `“${m._hype}”`;
     document.querySelector('.modal-card').classList.toggle('final', isFinal);
@@ -3282,14 +3289,14 @@ function initTournament({ show, setRaceRun, setResultRun }) {
   function runMatch() {
     const m = current;
     closeModal();
-    const cars = [car(m.a), car(m.b)];
+    const cars = racersOf(m).map(car);
     const tr = track(m.track);
     const isFinal = m.round === roundCount(t) - 1;
     const rn = LINES.roundName(m.round, roundCount(t));
     show('race');
     $('raceTitle').textContent = isFinal ? `${theme.finalIcon} CHAMPIONSHIP · ${tr.name}` : `${rn.replace(/^the /, '')} · ${tr.name}`;
     const intro = [
-      { lane: -1, html: `🎙️ ${isFinal ? 'THE CHAMPIONSHIP' : rn.toUpperCase()}: ${cars[0].name} vs ${cars[1].name}!`, text: m._hype },
+      { lane: -1, html: `🎙️ ${isFinal ? 'THE CHAMPIONSHIP' : rn.toUpperCase()}: ${cars.map((c) => c.name).join(' vs ')}!`, text: m._hype },
       ...cars.map((c, i) => { const f = factFor(c); return { lane: i, html: `Lane ${i + 1}: <b>${c.name}</b> — ${f.replace(c.name, '').trim() || f}`, text: `In lane ${i + 1} is ${c.name}. ${f}` }; }),
       { lane: -1, html: theme.readyHtml, text: LINES.ready() },
     ];
@@ -3428,8 +3435,44 @@ function seedOrder(size) {
   return order;
 }
 
+// Three-way start (theme.threeWayStart): round 1 is a mix of 3-car (and a few 2-car) races that cuts the field
+// down to a power of two; everyone else gets a bye. Then the normal head-to-head bracket takes over.
+// Match shape is unchanged except round-1 matches may have a third car `c` and a `feeds` link to the next-round slot.
+function buildThreeWay(carIds, rng) {
+  const n = carIds.length;
+  let T = 2; while (T * 2 < n) T *= 2;            // largest power of two below n
+  const elim = n - T;                              // racers that must be knocked out in round 1
+  const threes = Math.floor(elim / 2), twos = elim % 2;
+  const shuffled = shuffle(carIds, rng);
+  const t = { id: 't' + Date.now().toString(36) + Math.floor(rng() * 1e6).toString(36), createdAt: new Date().toISOString(), racers: [...carIds], rounds: [], champion: null, runnerUp: null, seq: 0, threeWay: true };
+  const pickTrack = () => theme.RACE_TRACKS[Math.floor(rng() * theme.RACE_TRACKS.length)].id;
+  const first = []; let k = 0;
+  for (let i = 0; i < threes + twos; i++) {
+    const size = i < threes ? 3 : 2;
+    const grp = shuffled.slice(k, k + size); k += size;
+    first.push({ id: `r0m${i}`, round: 0, index: i, a: grp[0], b: grp[1], ...(size === 3 ? { c: grp[2] } : {}), track: pickTrack(), winner: null, standings: null, playedAt: null, order: null, bye: false });
+  }
+  // entrants for the head-to-head bracket: each first-round race (winner pending) or a bye racer
+  const entrants = shuffle([...first.map((m) => ({ m })), ...shuffled.slice(k).map((id) => ({ id }))], rng);
+  const rounds = Math.log2(T);
+  t.rounds.push(first);
+  for (let r = 1; r <= rounds; r++) {
+    const count = T / 2 ** r, isFinal = r === rounds, ms = [];
+    for (let i = 0; i < count; i++) {
+      ms.push({ id: `r${r}m${i}`, round: r, index: i, a: null, b: null, track: isFinal ? theme.FINAL_TRACK.id : pickTrack(), winner: null, standings: null, playedAt: null, order: null, bye: false });
+    }
+    t.rounds.push(ms);
+  }
+  entrants.forEach((e, i) => {
+    const slot = t.rounds[1][Math.floor(i / 2)], key = i % 2 ? 'b' : 'a';
+    if (e.m) e.m.feeds = { match: slot.id, slot: key }; else slot[key] = e.id;
+  });
+  return t;
+}
+
 function buildBracket(carIds, rng = Math.random) {
   if (carIds.length < 2) throw new Error('Need at least 2 racers');
+  if (theme.threeWayStart && carIds.length >= 3) return buildThreeWay(carIds, rng);
   let size = 2;
   while (size < carIds.length) size *= 2;
   const rounds = Math.log2(size);
@@ -3473,13 +3516,15 @@ function autoAdvance(t, m) {
 }
 
 function advance(t, m) {
+  if (m.feeds) { findMatch(t, m.feeds.match)[m.feeds.slot] = m.winner; return; }
   const next = t.rounds[m.round + 1]?.[Math.floor(m.index / 2)];
   if (!next) { t.champion = m.winner; t.runnerUp = m.a === m.winner ? m.b : m.a; return; }
   if (m.index % 2 === 0) next.a = m.winner; else next.b = m.winner;
   // a later-round match can also be a bye only if both feeders were byes; impossible with correct seeding
 }
 
-const isReady = (m) => !!m.a && !!m.b && !m.winner;
+const isReady = (m) => !!m.a && !!m.b && (m.c === undefined || !!m.c) && !m.winner;
+const racersOf = (m) => [m.a, m.b, m.c].filter(Boolean);
 const allMatches = (t) => t.rounds.flat();
 const findMatch = (t, id) => allMatches(t).find((m) => m.id === id);
 const nextReady = (t) => allMatches(t).find(isReady) || null;
@@ -3488,7 +3533,7 @@ const roundCount = (t) => t.rounds.length;
 function recordResult(t, matchId, winnerId, standings = null) {
   const m = findMatch(t, matchId);
   if (!m || !isReady(m)) throw new Error('Match not playable');
-  if (winnerId !== m.a && winnerId !== m.b) throw new Error('Winner is not in this match');
+  if (!racersOf(m).includes(winnerId)) throw new Error('Winner is not in this match');
   m.winner = winnerId;
   m.standings = standings;
   m.playedAt = new Date().toISOString();
@@ -3507,14 +3552,26 @@ function validateTournament(t, carIds, trackIds) {
   if (!Array.isArray(t.rounds) || !t.rounds.length || t.rounds.some((r) => !Array.isArray(r))) bad('Missing bracket rounds.');
   const rounds = t.rounds.length;
   const okCar = (x) => x === null || carIds.includes(x);
+  const tw = t.threeWay === true;
+  if (tw && rounds < 2) bad('Bracket is too short.');
   t.rounds.forEach((ms, r) => {
-    if (ms.length !== 2 ** (rounds - 1 - r)) bad(`Round ${r + 1} has the wrong number of matches.`);
+    if (tw && r === 0) { if (!ms.length || ms.length > 64) bad('Round 1 has the wrong number of matches.'); }
+    else if (ms.length !== 2 ** (rounds - 1 - r)) bad(`Round ${r + 1} has the wrong number of matches.`);
     ms.forEach((m, i) => {
       if (!m || m.round !== r || m.index !== i || m.id !== `r${r}m${i}`) bad(`Match ${r + 1}.${i + 1} is malformed.`);
       if (!trackIds.includes(m.track)) bad(`Unknown track "${m.track}".`);
-      if (!okCar(m.a) || !okCar(m.b) || !okCar(m.winner ?? null)) bad(`Unknown racer in match ${r + 1}.${i + 1}.`);
-      if (m.winner && m.winner !== m.a && m.winner !== m.b) bad(`Winner isn't in match ${r + 1}.${i + 1}.`);
-      if (r > 0) { // racers must be exactly the winners of the two feeder matches
+      if (!okCar(m.a) || !okCar(m.b) || !okCar(m.winner ?? null) || (m.c !== undefined && !okCar(m.c))) bad(`Unknown racer in match ${r + 1}.${i + 1}.`);
+      if (m.winner && m.winner !== m.a && m.winner !== m.b && m.winner !== m.c) bad(`Winner isn't in match ${r + 1}.${i + 1}.`);
+      if (tw && r === 0) {
+        const f = m.feeds, tgt = t.rounds[1].find((x) => x.id === f?.match);
+        if (!tgt || (f.slot !== 'a' && f.slot !== 'b')) bad(`Match 1.${i + 1} feeds nowhere.`);
+        if (!m.a || !m.b) bad(`Match 1.${i + 1} is missing racers.`);
+      } else if (tw && r === 1) {
+        for (const key of ['a', 'b']) {
+          const feeder = t.rounds[0].find((x) => x.feeds && x.feeds.match === m.id && x.feeds.slot === key);
+          if (feeder ? (m[key] ?? null) !== (feeder.winner ?? null) : !m[key]) bad(`Match 2.${i + 1} doesn't match its feeder matches.`);
+        }
+      } else if (r > 0) { // racers must be exactly the winners of the two feeder matches
         const [fa, fb] = t.rounds[r - 1].slice(i * 2, i * 2 + 2);
         if ((m.a ?? null) !== (fa.winner ?? null) || (m.b ?? null) !== (fb.winner ?? null)) bad(`Match ${r + 1}.${i + 1} doesn't match its feeder matches.`);
       }
@@ -3524,6 +3581,7 @@ function validateTournament(t, carIds, trackIds) {
   if ((t.champion ?? null) !== (fin.winner ?? null)) bad('Champion does not match the final.');
   return {
     ...t,
+    ...(tw ? { threeWay: true } : {}),
     racers: Array.isArray(t.racers) ? t.racers.filter((x) => carIds.includes(x)) : [],
     champion: t.champion ?? null,
     runnerUp: t.runnerUp ?? null,
@@ -3531,7 +3589,7 @@ function validateTournament(t, carIds, trackIds) {
   };
 }
 
-return { buildBracket, isReady, allMatches, findMatch, nextReady, roundCount, recordResult, validateTournament };
+return { buildBracket, isReady, racersOf, allMatches, findMatch, nextReady, roundCount, recordResult, validateTournament };
 };
 __defs["./js/storage.js"] = function () {
 // Browser-only persistence for tournaments. Everything lives in localStorage.
