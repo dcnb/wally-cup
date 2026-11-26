@@ -110,7 +110,7 @@ export const CHROME = '#e9edf3';
 export { shade, poly, rrect, ellipse, wheel, face };
 
 // Each drawer paints one car body and returns its driver position {x, y}.
-const DRAW = {
+export const DRAW = {
   // --- Wallace: low aerodynamic race car, lime green ---
   wallace(g, c, a) {
     const dark = shade(c, -0.35);

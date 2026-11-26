@@ -89,6 +89,11 @@ export const sfx = {
   spin() { tone({ f: 1100, f2: 220, dur: 0.5, type: 'sine', vol: 0.07 }); },
   jump() { tone({ f: 260, f2: 640, dur: 0.3, type: 'triangle', vol: 0.1 }); },
   land() { noise({ dur: 0.15, vol: 0.1, freq: 400 }); tone({ f: 110, f2: 60, dur: 0.16, type: 'sine', vol: 0.14 }); },
+  // The Linger siren: a polite, slightly alarmed two-tone, then a long sigh.
+  linger() {
+    [0, 0.45].forEach((d) => { tone({ f: 660, dur: 0.2, type: 'square', vol: 0.09, delay: d }); tone({ f: 520, dur: 0.22, type: 'square', vol: 0.09, delay: d + 0.22 }); });
+    tone({ f: 330, f2: 180, dur: 1.2, type: 'triangle', vol: 0.1, delay: 0.95 });
+  },
   finish() { noise({ dur: 0.8, vol: 0.08, freq: 2500 }); },
 
   fanfare() {

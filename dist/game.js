@@ -172,6 +172,8 @@ const theme = {
   storageKey: 'wallycup.tournament.v1',
   exportPrefix: 'wally-cup',
   readyHtml: '🏁 Drivers, start your engines!',
+  linger: null, // the Linger Cup sets this (see js/linger.js); null means no lingering
+  homeCols: 4,
   DRAW: null,   // extra car drawers (id -> fn), looked up before the built-in ones
   scenes: null, // per-track scenery overrides (track id -> hooks), see tracks.js
   zoneKinds: null, // extra zone painters (kind -> fn)
@@ -1085,7 +1087,7 @@ function drawCar(g, car, x, y, width, opts = {}) {
 // Height of the tallest car, in local units — for layout.
 const CAR_H = 130;
 
-return { shade, poly, rrect, ellipse, wheel, face, CAR_W, GLASS, CHROME, drawCar, CAR_H };
+return { shade, poly, rrect, ellipse, wheel, face, CAR_W, GLASS, CHROME, DRAW, drawCar, CAR_H };
 };
 __defs["./js/tracks.js"] = function () {
 // Procedural scenery for the tracks. All canvas, no images.
@@ -1631,7 +1633,7 @@ function startHome(canvas) {
   const g = canvas.getContext('2d');
   const CARS = theme.CARS, K = theme.canvas;
   const narrow = window.matchMedia('(max-width: 760px)').matches;
-  const cols = narrow ? 3 : 4;
+  const cols = narrow ? 3 : (theme.homeCols || 4);
   const rows = Math.ceil(CARS.length / cols);
   const cellW = 320, cellH = 200;
   const W = cols * cellW, H = rows * cellH + 30;
@@ -1788,6 +1790,11 @@ const sfx = {
   spin() { tone({ f: 1100, f2: 220, dur: 0.5, type: 'sine', vol: 0.07 }); },
   jump() { tone({ f: 260, f2: 640, dur: 0.3, type: 'triangle', vol: 0.1 }); },
   land() { noise({ dur: 0.15, vol: 0.1, freq: 400 }); tone({ f: 110, f2: 60, dur: 0.16, type: 'sine', vol: 0.14 }); },
+  // The Linger siren: a polite, slightly alarmed two-tone, then a long sigh.
+  linger() {
+    [0, 0.45].forEach((d) => { tone({ f: 660, dur: 0.2, type: 'square', vol: 0.09, delay: d }); tone({ f: 520, dur: 0.22, type: 'square', vol: 0.09, delay: d + 0.22 }); });
+    tone({ f: 330, f2: 180, dur: 1.2, type: 'triangle', vol: 0.1, delay: 0.95 });
+  },
   finish() { noise({ dur: 0.8, vol: 0.08, freq: 2500 }); },
 
   fanfare() {
@@ -1893,6 +1900,7 @@ const { drawCar } = __req("./js/cars.js");
 const { sfx, music } = __req("./js/sound.js");
 const { announcer, LINES } = __req("./js/announcer.js");
 const { factFor, theme } = __req("./js/theme.js");
+const { createLinger } = __req("./js/linger.js");
 const { drawSky, drawLaneGround, drawLaneScenery, drawForeground, drawZone, drawZoneGate, drawRamp, drawZoneBanner, drawTint, drawAmbient } = __req("./js/tracks.js");
 
 const TAU = Math.PI * 2;
@@ -1942,6 +1950,9 @@ function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone, cfg =
 
   const nm = (lane) => `<b style="color:${cars[lane].color === '#26262b' ? '#9aa' : cars[lane].color}">${cars[lane].name}</b>`;
   const pn = (lane) => cars[lane].name;
+  // Linger Cup only: the race can freeze while a family says goodbye (see js/linger.js).
+  const lg = theme.linger ? createLinger({ cars, stage: canvas.parentElement, say }) : null;
+  let lgWinnerDone = false;
 
   function showBubble(text, cls) {
     bubble.className = 'bubble ' + (cls || '');
@@ -2031,11 +2042,17 @@ function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone, cfg =
     }
     if (phase === 'racing') {
       if (phaseT > 0.9) bubble.hidden = true;
+      if (lg?.active) lg.update(rawDt);
+      else {
       const sdt = Math.min(dt, 0.05);
       step(race, sdt);
       for (const ev of race.events) handle(ev);
       race.events.length = 0;
       const lp = leaderProgress();
+      if (lg) { // a Carlson/Altman winner starts a Linger at the line; a surprise one can also strike mid-race
+        if (race.winner && !lgWinnerDone) { lgWinnerDone = true; lg.onWinner(race.winner.car); }
+        else if (!race.winner) { const fam = lg.midRace(lp); if (fam) lg.start(fam, 'mid'); }
+      }
       music.setIntensity(lp);
       // camera follows the leader's speed
       const lead = Math.max(...race.cars.map((c) => c.v));
@@ -2051,6 +2068,7 @@ function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone, cfg =
       }
       if (!finalCalled && lp > 0.86) { finalCalled = true; say('🏁 Final stretch!', 'lead', LINES.final(), 2); }
       if (race.over) { phase = 'done'; phaseT = 0; }
+      }
     } else if (phase === 'done') {
       finishing += dt;
       scroll += 40 * dt;
@@ -2059,13 +2077,13 @@ function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone, cfg =
     // per-car visuals
     race.cars.forEach((s, i) => {
       const v = vis[i];
-      v.wheel += (phase === 'racing' || phase === 'done' ? s.v : phase === 'countdown' ? 25 + Math.sin(t * 40) * 6 : 6) * dt * 0.5;
+      v.wheel += (lg?.active ? 5 : phase === 'racing' || phase === 'done' ? s.v : phase === 'countdown' ? 25 + Math.sin(t * 40) * 6 : 6) * dt * 0.5;
       if (s.spinT > 0) v.rot += dt * 14;
       else { const tg = Math.round(v.rot / TAU) * TAU; v.rot += (tg - v.rot) * Math.min(1, dt * 10); }
       v.sparkle = Math.max(0, v.sparkle - dt);
       v.shake = Math.max(0, v.shake - dt * 2);
       // exhaust / dust trail while racing; fire when boosting; smoke when spinning
-      const trail = phase === 'racing' && !s.finished && s.spinT <= 0 && Math.random() < dt * 14;
+      const trail = phase === 'racing' && !lg?.active && !s.finished && s.spinT <= 0 && Math.random() < dt * 14;
       if (trail || ((s.spinT > 0 || s.boostT > 0.3) && Math.random() < dt * 30)) {
         v.smoke.push({ x: 0, y: 0, r: trail ? 4 + Math.random() * 4 : 8 + Math.random() * 8, a: trail ? 0.5 : 0.8, fire: s.spinT <= 0 && s.boostT > 0.3 });
       }
@@ -2077,13 +2095,13 @@ function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone, cfg =
   function cleanup() {
     window.removeEventListener('resize', onResize);
     if (skipBtn) { skipBtn.hidden = true; skipBtn.onclick = null; }
-    music.stop(); announcer.cancel();
+    music.stop(); announcer.cancel(); lg?.destroy();
   }
 
   function finish() {
     cancelAnimationFrame(raf);
     window.removeEventListener('resize', onResize);
-    music.stop();
+    music.stop(); lg?.destroy();
     onDone({ standings: standings(race).map((s) => s.car), winner: race.winner.car, track });
   }
 
@@ -2173,6 +2191,7 @@ function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone, cfg =
     drawAmbient(g, track, W, H, scroll, t);
     drawHud();
     race.cars.forEach((s, i) => drawTag(s, i, order.indexOf(s)));
+    if (lg?.active) race.cars.forEach((s, i) => drawChat(s, i));
     if (flash > 0) { g.fillStyle = `rgba(255,248,225,${flash})`; g.fillRect(0, 0, W, H); }
     g.restore();
   }
@@ -2189,6 +2208,26 @@ function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone, cfg =
       g.fillStyle = s.car.color; g.strokeStyle = '#fff'; g.lineWidth = 3;
       g.beginPath(); g.arc(px, y, 9, 0, TAU); g.fill(); g.stroke();
     });
+  }
+
+  // Linger speech bubbles: everybody has something to say while the race is on hold.
+  function drawChat(s, i) {
+    const text = lg.bubbleFor(s.car, i);
+    if (!text) return;
+    const base = SKY_H + i * laneH + laneH * 0.72;
+    const cx = clamp(xOf(s.pos / CONFIG.length), 90, W - 90);
+    const y = base - Math.min(carW * 0.62, laneH * 0.9);
+    g.save();
+    g.font = '700 17px "Barlow Semi Condensed", sans-serif';
+    const w = g.measureText(text).width + 22, h = 28;
+    g.translate(cx, y);
+    g.beginPath(); g.roundRect(-w / 2, -h, w, h, 9);
+    g.fillStyle = '#fffaf0'; g.strokeStyle = '#1b1b24'; g.lineWidth = 3; g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(-7, -1); g.lineTo(0, 9); g.lineTo(7, -1); g.fillStyle = '#fffaf0'; g.fill();
+    g.beginPath(); g.moveTo(-8, 0); g.lineTo(0, 9); g.lineTo(8, 0); g.stroke();
+    g.fillRect(-6, -4, 12, 5);
+    g.fillStyle = '#1b1b24'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 0, -h / 2 + 1);
+    g.restore();
   }
 
   // Name plate hangs right under its car; the text is centered using real glyph metrics.
@@ -2209,7 +2248,7 @@ function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone, cfg =
     g.beginPath(); g.moveTo(-8, 0); g.lineTo(0, -9); g.lineTo(8, 0); g.closePath(); g.fill(); g.stroke();
     g.beginPath(); g.roundRect(-tw / 2, 0, tw, PH, 5); g.fillStyle = '#f6ecd6'; g.fill(); g.stroke();
     g.beginPath(); g.roundRect(-tw / 2, 0, 28, PH, [5, 0, 0, 5]); g.fillStyle = col; g.fill(); g.stroke();
-    g.fillStyle = col === '#c5ccd4' || col === '#e9f6ff' || col === '#ffd21f' || col === '#9be22b' ? '#1b1b24' : '#fff';
+    g.fillStyle = isLight(col) ? '#1b1b24' : '#fff';
     g.textAlign = 'center'; g.textBaseline = 'alphabetic';
     g.fillText(String(place + 1), -tw / 2 + 14, ty);
     g.fillStyle = '#1b1b24'; g.fillText(label, 14, ty);
@@ -2228,6 +2267,8 @@ function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone, cfg =
 
   return { stop() { stopped = true; cancelAnimationFrame(raf); bubble.hidden = true; cleanup(); }, race };
 }
+
+const isLight = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) > 150; };
 
 function drawCheckers(g, x, y, w, h) {
   const s = w / 2;
@@ -2856,6 +2897,114 @@ const LINES = new Proxy(BASE_LINES, {
 });
 
 return { announcer, pick, LINES };
+};
+__defs["./js/linger.js"] = function () {
+// The Linger: the race freezes for 5-8 seconds while a family says goodbye. And then says it again.
+// Carlsons and Altmans linger (opinions differ on who is longer). The Beckers do not linger. They just leave.
+// Only active when the theme defines `linger` (see js/themes/carlson.js); every other version is untouched.
+const { theme } = __req("./js/theme.js");
+const { announcer, pick } = __req("./js/announcer.js");
+const { sfx } = __req("./js/sound.js");
+
+// Running score for the whole page session, so the announcer can argue about who is longer.
+const tally = { carlson: 0, altman: 0, becker: 0, seconds: { carlson: 0, altman: 0 } };
+
+const TEXT = {
+  carlson: {
+    open: ['Attention, everyone. The Carlson Linger is now in effect.', 'Warning. This is a Carlson Linger. Please remain seated.', 'It has begun. The Carlson Linger is in effect.'],
+    mid: ['Someone just said, one more thing.', 'A Carlson is standing at the door. Not leaving.', 'The coats are on. Nobody has moved.', 'Somebody found one more cat photo.', 'They have hugged twice. They are about to hug again.'],
+    end: ['And the Carlson Linger finally lifts.', 'The Linger is over. Probably. Nobody move.', 'Okay! The Carlson Linger has ended. For now.'],
+    sub: ['Everyone is saying goodbye. Again.', 'Just one more thing.', 'Coats are on. Nobody is going anywhere.'],
+    bubbles: ['one more thing…', 'oh wait!', 'anyway…', 'did I tell you…', 'okay bye! (not bye)', 'we should go…', 'hold on, a photo?', 'bye! bye! …bye!'],
+  },
+  altman: {
+    open: ['Attention, everyone. The Altman Linger is now in effect.', 'Warning. This is an Altman Linger. Please remain seated.', 'It has begun. The Altman Linger is in effect.'],
+    mid: ['Someone just said, anyway, as they say.', 'An Altman is standing in the driveway, waving. Still waving.', 'Somebody is telling the story. The second telling.', 'The goodbye has a second act.', 'They have said goodbye. They are now saying it again at the car.'],
+    end: ['And the Altman Linger finally lifts.', 'The Linger is over. Probably. Do not make eye contact.', 'Okay! The Altman Linger has ended. For now.'],
+    sub: ['Standing in the driveway, waving. Still.', 'One more story. Then one more.', 'Goodbye, part two of five.'],
+    bubbles: ['so anyway…', 'one more story!', 'bye! bye! …bye!', 'oh, and another thing', 'okay, we really should go', 'wait, the leftovers!', 'it was so good to see you!', '(still waving)'],
+  },
+  becker: ['Bye!', 'Already left.', 'We are leaving.', 'Thanks, bye!', 'Got my coat.', '(is in the driveway)'],
+  rival: ['Our Linger is longer.', 'Ours is longer, actually.', 'We have not even started.', 'Amateurs.'],
+  rivalry: ['Experts disagree on which Linger is longer.', 'The Linger scoreboard is closer than anyone will admit.', 'The debate on whose Linger is longer continues, and it will linger.'],
+  becker_line: ['The Beckers do not linger. They just leave.', 'No Linger today. The Beckers are already in the car.', 'A Becker win. Everyone is gone before the confetti lands.'],
+};
+
+const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const forced = (() => { try { return new URLSearchParams(location.search).get('linger'); } catch { return null; } })();
+
+function createLinger({ cars, stage, say }) {
+  const cfg = theme.linger;
+  const fams = new Set(cars.map((c) => c.family).filter((f) => f === 'carlson' || f === 'altman'));
+  // Maybe schedule a surprise linger somewhere in the middle of this race.
+  let midAt = null;
+  if (fams.size && (forced || Math.random() < cfg.midRaceChance)) midAt = 0.3 + Math.random() * 0.4;
+  if (forced === '1') midAt = 0.2;
+  let midDone = false;
+
+  const el = document.createElement('div');
+  el.className = 'linger'; el.hidden = true; el.setAttribute('role', 'alert');
+  el.innerHTML = `<div class="linger-tag"></div><div class="linger-sub"></div><div class="linger-bar"><i></i></div><div class="linger-skip">tap to skip</div>`;
+  stage.appendChild(el);
+  const q = (s) => el.querySelector(s);
+
+  const lg = {
+    active: false, kind: null, t: 0, dur: 0, spoke: 0,
+    update(dt) {
+      if (!this.active) return;
+      this.t += dt;
+      q('.linger-bar i').style.transform = `scaleX(${Math.max(0, 1 - this.t / this.dur)})`;
+      if (this.spoke === 0 && this.t > this.dur * 0.35) { this.spoke = 1; announcer.say(pick(TEXT[this.kind].mid, 'lgmid'), 2); }
+      if (this.t >= this.dur) this.stop(true);
+    },
+    start(kind, why) {
+      if (this.active) return;
+      this.active = true; this.kind = kind; this.t = 0; this.spoke = 0;
+      this.dur = cfg.minSeconds + Math.random() * (cfg.maxSeconds - cfg.minSeconds);
+      tally[kind]++;
+      const f = cfg.families[kind];
+      q('.linger-tag').textContent = `⚠ ${f.name.toUpperCase()} LINGER IN EFFECT ⚠`;
+      q('.linger-sub').textContent = pick(TEXT[kind].sub, 'lgsub');
+      q('.linger-bar i').style.transform = 'scaleX(1)';
+      el.className = `linger ${kind}${REDUCED ? ' still' : ''}`; el.hidden = false;
+      sfx.linger();
+      say(`⚠️ ${f.name} Linger in effect. Nobody is leaving.`, 'zone', pick(TEXT[kind].open, 'lgopen'), why === 'finish' ? 2 : 3);
+      el.onclick = () => { announcer.cancel(); this.stop(true, true); };
+    },
+    stop(announce, skipped) {
+      if (!this.active) return;
+      this.active = false; el.hidden = true; el.onclick = null;
+      tally.seconds[this.kind] += Math.min(this.t, this.dur);
+      if (announce && !skipped) say(`The ${cfg.families[this.kind].name} Linger has ended. (Probably.)`, 'good', pick(TEXT[this.kind].end, 'lgend'), 2);
+      this.kind = null;
+    },
+    // Called once when a racer crosses the line. Returns true if a linger starts.
+    onWinner(car) {
+      if (car.family === 'carlson' || car.family === 'altman') { this.start(car.family, 'finish'); return true; }
+      return false;
+    },
+    // Called while racing. Returns the family to linger if the random mid-race moment has arrived.
+    midRace(progress) {
+      if (midAt == null || midDone || progress < midAt) return null;
+      midDone = true;
+      const list = [...fams];
+      return list[(Math.random() * list.length) | 0];
+    },
+    // What a racer says while the linger is on. `t` is seconds into the linger.
+    bubbleFor(car, lane) {
+      if (!this.active) return null;
+      const idx = Math.floor(this.t / 1.5 + lane);
+      if (car.family === 'becker') return TEXT.becker[idx % TEXT.becker.length];
+      if (car.family === this.kind) return TEXT[this.kind].bubbles[idx % TEXT[this.kind].bubbles.length];
+      if (car.family === 'carlson' || car.family === 'altman') return TEXT.rival[idx % TEXT.rival.length];
+      return null;
+    },
+    destroy() { el.remove(); },
+  };
+  return lg;
+}
+
+return { createLinger };
 };
 __defs["./js/results.js"] = function () {
 // Podium screen: confetti for the champion, rain clouds for everybody else.

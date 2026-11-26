@@ -4,6 +4,7 @@ import { drawCar } from './cars.js';
 import { sfx, music } from './sound.js';
 import { announcer, LINES } from './announcer.js';
 import { factFor, theme } from './theme.js';
+import { createLinger } from './linger.js';
 import { drawSky, drawLaneGround, drawLaneScenery, drawForeground, drawZone, drawZoneGate, drawRamp, drawZoneBanner, drawTint, drawAmbient } from './tracks.js';
 
 const TAU = Math.PI * 2;
@@ -53,6 +54,9 @@ export function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone
 
   const nm = (lane) => `<b style="color:${cars[lane].color === '#26262b' ? '#9aa' : cars[lane].color}">${cars[lane].name}</b>`;
   const pn = (lane) => cars[lane].name;
+  // Linger Cup only: the race can freeze while a family says goodbye (see js/linger.js).
+  const lg = theme.linger ? createLinger({ cars, stage: canvas.parentElement, say }) : null;
+  let lgWinnerDone = false;
 
   function showBubble(text, cls) {
     bubble.className = 'bubble ' + (cls || '');
@@ -142,11 +146,17 @@ export function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone
     }
     if (phase === 'racing') {
       if (phaseT > 0.9) bubble.hidden = true;
+      if (lg?.active) lg.update(rawDt);
+      else {
       const sdt = Math.min(dt, 0.05);
       step(race, sdt);
       for (const ev of race.events) handle(ev);
       race.events.length = 0;
       const lp = leaderProgress();
+      if (lg) { // a Carlson/Altman winner starts a Linger at the line; a surprise one can also strike mid-race
+        if (race.winner && !lgWinnerDone) { lgWinnerDone = true; lg.onWinner(race.winner.car); }
+        else if (!race.winner) { const fam = lg.midRace(lp); if (fam) lg.start(fam, 'mid'); }
+      }
       music.setIntensity(lp);
       // camera follows the leader's speed
       const lead = Math.max(...race.cars.map((c) => c.v));
@@ -162,6 +172,7 @@ export function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone
       }
       if (!finalCalled && lp > 0.86) { finalCalled = true; say('🏁 Final stretch!', 'lead', LINES.final(), 2); }
       if (race.over) { phase = 'done'; phaseT = 0; }
+      }
     } else if (phase === 'done') {
       finishing += dt;
       scroll += 40 * dt;
@@ -170,13 +181,13 @@ export function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone
     // per-car visuals
     race.cars.forEach((s, i) => {
       const v = vis[i];
-      v.wheel += (phase === 'racing' || phase === 'done' ? s.v : phase === 'countdown' ? 25 + Math.sin(t * 40) * 6 : 6) * dt * 0.5;
+      v.wheel += (lg?.active ? 5 : phase === 'racing' || phase === 'done' ? s.v : phase === 'countdown' ? 25 + Math.sin(t * 40) * 6 : 6) * dt * 0.5;
       if (s.spinT > 0) v.rot += dt * 14;
       else { const tg = Math.round(v.rot / TAU) * TAU; v.rot += (tg - v.rot) * Math.min(1, dt * 10); }
       v.sparkle = Math.max(0, v.sparkle - dt);
       v.shake = Math.max(0, v.shake - dt * 2);
       // exhaust / dust trail while racing; fire when boosting; smoke when spinning
-      const trail = phase === 'racing' && !s.finished && s.spinT <= 0 && Math.random() < dt * 14;
+      const trail = phase === 'racing' && !lg?.active && !s.finished && s.spinT <= 0 && Math.random() < dt * 14;
       if (trail || ((s.spinT > 0 || s.boostT > 0.3) && Math.random() < dt * 30)) {
         v.smoke.push({ x: 0, y: 0, r: trail ? 4 + Math.random() * 4 : 8 + Math.random() * 8, a: trail ? 0.5 : 0.8, fire: s.spinT <= 0 && s.boostT > 0.3 });
       }
@@ -188,13 +199,13 @@ export function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone
   function cleanup() {
     window.removeEventListener('resize', onResize);
     if (skipBtn) { skipBtn.hidden = true; skipBtn.onclick = null; }
-    music.stop(); announcer.cancel();
+    music.stop(); announcer.cancel(); lg?.destroy();
   }
 
   function finish() {
     cancelAnimationFrame(raf);
     window.removeEventListener('resize', onResize);
-    music.stop();
+    music.stop(); lg?.destroy();
     onDone({ standings: standings(race).map((s) => s.car), winner: race.winner.car, track });
   }
 
@@ -284,6 +295,7 @@ export function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone
     drawAmbient(g, track, W, H, scroll, t);
     drawHud();
     race.cars.forEach((s, i) => drawTag(s, i, order.indexOf(s)));
+    if (lg?.active) race.cars.forEach((s, i) => drawChat(s, i));
     if (flash > 0) { g.fillStyle = `rgba(255,248,225,${flash})`; g.fillRect(0, 0, W, H); }
     g.restore();
   }
@@ -300,6 +312,26 @@ export function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone
       g.fillStyle = s.car.color; g.strokeStyle = '#fff'; g.lineWidth = 3;
       g.beginPath(); g.arc(px, y, 9, 0, TAU); g.fill(); g.stroke();
     });
+  }
+
+  // Linger speech bubbles: everybody has something to say while the race is on hold.
+  function drawChat(s, i) {
+    const text = lg.bubbleFor(s.car, i);
+    if (!text) return;
+    const base = SKY_H + i * laneH + laneH * 0.72;
+    const cx = clamp(xOf(s.pos / CONFIG.length), 90, W - 90);
+    const y = base - Math.min(carW * 0.62, laneH * 0.9);
+    g.save();
+    g.font = '700 17px "Barlow Semi Condensed", sans-serif';
+    const w = g.measureText(text).width + 22, h = 28;
+    g.translate(cx, y);
+    g.beginPath(); g.roundRect(-w / 2, -h, w, h, 9);
+    g.fillStyle = '#fffaf0'; g.strokeStyle = '#1b1b24'; g.lineWidth = 3; g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(-7, -1); g.lineTo(0, 9); g.lineTo(7, -1); g.fillStyle = '#fffaf0'; g.fill();
+    g.beginPath(); g.moveTo(-8, 0); g.lineTo(0, 9); g.lineTo(8, 0); g.stroke();
+    g.fillRect(-6, -4, 12, 5);
+    g.fillStyle = '#1b1b24'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 0, -h / 2 + 1);
+    g.restore();
   }
 
   // Name plate hangs right under its car; the text is centered using real glyph metrics.
@@ -320,7 +352,7 @@ export function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone
     g.beginPath(); g.moveTo(-8, 0); g.lineTo(0, -9); g.lineTo(8, 0); g.closePath(); g.fill(); g.stroke();
     g.beginPath(); g.roundRect(-tw / 2, 0, tw, PH, 5); g.fillStyle = '#f6ecd6'; g.fill(); g.stroke();
     g.beginPath(); g.roundRect(-tw / 2, 0, 28, PH, [5, 0, 0, 5]); g.fillStyle = col; g.fill(); g.stroke();
-    g.fillStyle = col === '#c5ccd4' || col === '#e9f6ff' || col === '#ffd21f' || col === '#9be22b' ? '#1b1b24' : '#fff';
+    g.fillStyle = isLight(col) ? '#1b1b24' : '#fff';
     g.textAlign = 'center'; g.textBaseline = 'alphabetic';
     g.fillText(String(place + 1), -tw / 2 + 14, ty);
     g.fillStyle = '#1b1b24'; g.fillText(label, 14, ty);
@@ -339,6 +371,8 @@ export function startRace({ cars, track, canvas, bubble, ticker, skipBtn, onDone
 
   return { stop() { stopped = true; cancelAnimationFrame(raf); bubble.hidden = true; cleanup(); }, race };
 }
+
+const isLight = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) > 150; };
 
 function drawCheckers(g, x, y, w, h) {
   const s = w / 2;

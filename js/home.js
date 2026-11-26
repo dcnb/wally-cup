@@ -9,7 +9,7 @@ export function startHome(canvas) {
   const g = canvas.getContext('2d');
   const CARS = theme.CARS, K = theme.canvas;
   const narrow = window.matchMedia('(max-width: 760px)').matches;
-  const cols = narrow ? 3 : 4;
+  const cols = narrow ? 3 : (theme.homeCols || 4);
   const rows = Math.ceil(CARS.length / cols);
   const cellW = 320, cellH = 200;
   const W = cols * cellW, H = rows * cellH + 30;

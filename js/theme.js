@@ -15,6 +15,8 @@ export const theme = {
   storageKey: 'wallycup.tournament.v1',
   exportPrefix: 'wally-cup',
   readyHtml: '🏁 Drivers, start your engines!',
+  linger: null, // the Linger Cup sets this (see js/linger.js); null means no lingering
+  homeCols: 4,
   DRAW: null,   // extra car drawers (id -> fn), looked up before the built-in ones
   scenes: null, // per-track scenery overrides (track id -> hooks), see tracks.js
   zoneKinds: null, // extra zone painters (kind -> fn)

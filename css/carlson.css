@@ -1,0 +1,35 @@
+/* The Linger Cup: same retro poster, a cozy driveway-at-dusk palette. Loaded after style.css. */
+body.carlson {
+  --paper: oklch(95.5% 0.03 95);
+  --paper-deep: oklch(90% 0.05 92);
+  --ink: oklch(25% 0.06 290);
+  --ink-soft: oklch(38% 0.05 290);
+  --red: oklch(62% 0.19 30);
+  --red-deep: oklch(48% 0.16 28);
+  --mustard: oklch(84% 0.15 90);
+  --mustard-deep: oklch(68% 0.14 80);
+  --teal: oklch(62% 0.09 200);
+  --teal-deep: oklch(45% 0.08 205);
+}
+body.carlson .logo { text-shadow: 4px 4px 0 var(--ink), 8px 8px 0 var(--teal); }
+
+/* ---------- the Linger warning: a stamped poster slapped across the frozen race ---------- */
+.linger {
+  position: absolute; left: 50%; top: 52%; z-index: 6; width: min(62%, 500px); transform: translate(-50%, -50%) rotate(-3deg);
+  padding: 10px 16px 8px; text-align: center; cursor: pointer;
+  background: var(--mustard); color: var(--ink); border: 6px solid var(--ink); box-shadow: 8px 8px 0 var(--ink);
+  animation: lingerIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.linger[hidden] { display: none; }
+.linger.altman { background: var(--teal); }
+.linger.carlson { background: var(--red); color: var(--paper); }
+.linger-tag { font-family: var(--display); font-size: clamp(18px, 3.2vw, 30px); line-height: 1.05; letter-spacing: 0.01em; }
+.linger-sub { margin-top: 6px; font-weight: 700; font-size: clamp(15px, 2vw, 20px); }
+.linger-bar { margin: 10px 0 6px; height: 14px; background: var(--paper); border: 3px solid var(--ink); overflow: hidden; }
+.linger-bar i { display: block; height: 100%; width: 100%; background: var(--ink); transform-origin: left center; }
+.linger-tally { font-size: 15px; font-weight: 600; opacity: 0.92; }
+.linger-skip { margin-top: 2px; font-size: 13px; font-weight: 600; opacity: 0.75; }
+.linger:not(.still) .linger-tag { animation: lingerWobble 1.4s ease-in-out infinite; }
+@keyframes lingerIn { from { transform: translate(-50%, -50%) rotate(-12deg) scale(0.4); opacity: 0; } to { transform: translate(-50%, -50%) rotate(-3deg) scale(1); opacity: 1; } }
+@keyframes lingerWobble { 0%, 100% { transform: rotate(-1deg); } 50% { transform: rotate(1deg) scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { .linger, .linger-tag { animation: none !important; } }

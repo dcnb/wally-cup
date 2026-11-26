@@ -240,4 +240,5 @@ canvas { display: block; width: 100%; height: auto; }
 .variant-link:hover { transform: translate(-2px, -2px) rotate(-6deg); box-shadow: 6px 6px 0 var(--ink); }
 .variant-link:focus-visible { outline: 4px solid var(--teal); outline-offset: 3px; }
 .variant-link[href="index.html"] { font-size: 16px; }
-@media (max-width: 640px) { .variant-link { bottom: 74px; } .toast { bottom: 80px; } }
+.variant-link.v2 { bottom: 76px; }
+@media (max-width: 640px) { .variant-link { bottom: 74px; } .variant-link.v2 { bottom: 136px; } .toast { bottom: 80px; } }
