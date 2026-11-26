@@ -231,7 +231,7 @@ const BASE_LINES = {
   ], 'win'),
   // ---- tournament ----
   roundName: (round, total) => {
-    const left = total - round; // 0 = final
+    const left = total - 1 - round; // 0 = final
     return left === 0 ? 'the Championship' : left === 1 ? 'the Semifinals' : left === 2 ? 'the Quarterfinals' : `Round ${round + 1}`;
   },
   matchup: (a, b, rn, tr) => pick([

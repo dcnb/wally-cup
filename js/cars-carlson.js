@@ -342,4 +342,19 @@ export const DRAW_CARLSON = {
   rio: DRAW.rufus,
   munija: scaled(DRAW.rufus, 0.8, fierce),
   pato: bus,
+  cynthia: compact('volvo', { extra: (g) => { // a little sail and a lifebuoy
+    g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.moveTo(96, -80); g.lineTo(96, -128); g.stroke();
+    poly(g, [[98, -126], [98, -86], [142, -86]], '#fffaf0', INK, 3);
+    poly(g, [[94, -120], [94, -88], [60, -88]], '#e8eef8', INK, 3);
+    ellipse(g, 110, -36, 11, 11, '#e5483a'); ellipse(g, 110, -36, 5, 5, '#fffaf0', INK, 2);
+  } }),
+  lily: compact('mini', { extra: (g) => { // two giant crochet needles and a ball of yarn
+    for (const [x, rot] of [[60, -0.5], [88, 0.4]]) {
+      g.save(); g.translate(x, -82); g.rotate(rot);
+      rrect(g, -3, -62, 6, 62, 3, '#d9a441', INK, 2.5); ellipse(g, 0, -62, 6, 5, '#d9a441', INK, 2.5);
+      g.restore();
+    }
+    ellipse(g, 120, -92, 13, 13, '#ff7ab8'); g.strokeStyle = INK; g.lineWidth = 2;
+    g.beginPath(); g.arc(120, -92, 8, 0.3, 2.4); g.stroke(); g.beginPath(); g.arc(120, -92, 5, 3.5, 5.6); g.stroke();
+  } }),
 };

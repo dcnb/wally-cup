@@ -1,6 +1,6 @@
 // The Wally Cup, family edition: the Beckers, the Carlsons and the Altmans. Same game; a Carlson/Altman Linger can surprise a race.
 // Ratings are 1-5 and never shown to players. Every quip is affectionate: nobody here is being mean.
-// `family` only matters for the surprise Linger (see js/linger.js): Carlsons and Altmans linger; Beckers just leave.
+// `family` only matters for the surprise Linger (see js/linger.js): Carlsons and Altmans linger; Beckers and 'guest' (Thanksgiving-only cousins) don't.
 import { DRAW_CARLSON } from '../cars-carlson.js';
 
 const H = 'honk';
@@ -40,6 +40,9 @@ export const CARS = [
   car('rio', 'Rio', 'altman', 'Orange-brown dog car', '#c9692a', "A very good boy in a very rich shade of orange.", 4, 3, 3, 3, { voice: 'woof' }),
   car('munija', 'Munija', 'altman', 'Tiny terrifying dog car', '#c9a15a', "The most terrifying small dog ever created. Weighs nine pounds. Argues with trucks.", 3, 5, 2, 5, { voice: 'yip' }),
   car('pato', 'Pato', 'altman', 'Yellow bus', '#ffcf2e', "A photographer. Deborah's boyfriend. Will stop the bus for a good light.", 2, 2, 3, 4, { pitch: 190 }),
+  // ---- Thanksgiving-only cousins (related to Erica, Erik and Ilsa). Guests don't linger. ----
+  car('cynthia', 'Cynthia', 'guest', 'Navy wagon with a sail', '#2a4a7a', "A Rhode Island matriarch and a big-time sailor. Tacks on every turn.", 3, 4, 3, 5, { pitch: 240 }),
+  car('lily', 'Lily', 'guest', 'Green hatchback with giant crochet needles', '#2f8a55', "Went to Vermont for college. Came back with giant crochet needles.", 3, 3, 4, 4, { pitch: 540 }),
 ];
 
 // Pre-race facts. Each starts with {n} (the engine swaps in the name).
@@ -240,6 +243,20 @@ export const FACTS = {
     '{n} may be small, but the Camaro moved over for her.',
     '{n} is a very small dog with a very big, very loud plan.',
   ],
+  cynthia: [
+    '{n} is a matriarch from Rhode Island, and the whole track knows it.',
+    '{n} was a big sailor, and still checks the wind before every turn.',
+    '{n} sails the corners and takes the straights on a broad reach.',
+    '{n} says a good captain never panics, and always packs extra snacks.',
+    '{n} has a sail on the roof and a lighthouse in her heart.',
+  ],
+  lily: [
+    '{n} went to Vermont for college and has opinions about maple syrup.',
+    '{n} likes giant crochet needles. The bigger, the better.',
+    '{n} crocheted a blanket for the whole pit crew, on needles the size of oars.',
+    '{n} has two enormous crochet needles sticking out of the roof and no regrets.',
+    '{n} says every road is just a very long row of single crochet.',
+  ],
   pato: [
     '{n} is a photographer, and will stop the bus for good light.',
     '{n} has taken two hundred pictures of the starting line.',
@@ -261,11 +278,11 @@ export const carlsonTheme = {
   cupName: 'Wally Cup',
   noun: 'car', nouns: 'cars',
   homeCols: 5,
-  threeWayStart: true, // tournament round 1 is a mix of 3-car and 2-car races, then head-to-head
+  stagedStart: true, // tournament: 4-car races, then 3-car, then 1-on-1 semifinals and final
   finalIcon: '🌈',
   champIcon: '🏆',
   shouts: ['BEEP!', 'MEOW!', 'WOOF!', 'HONK!'],
-  storageKey: 'wallycup.family.tournament.v1',
+  storageKey: 'wallycup.family.tournament.v2',
   exportPrefix: 'wally-cup-family',
   readyHtml: '🏁 Drivers, start your engines!',
   linger: {
@@ -275,6 +292,7 @@ export const carlsonTheme = {
       becker: { name: 'Becker', plural: 'Beckers' },
     },
     minSeconds: 5, maxSeconds: 8,
-    midRaceChance: 0.4,
+    midRaceChance: 0.24,  // chance a race gets a surprise linger part-way through
+    finishChance: 0.16,   // chance a race gets one at the finish instead (only if a Carlson/Altman wins)
   },
 };

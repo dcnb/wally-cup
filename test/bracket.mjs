@@ -18,13 +18,18 @@ for (let n = 2; n <= CARS.length; n++) {
   ok(t.rounds.at(-1)[0].track === FINAL_TRACK.id, `${n}: final on rainbow`);
   ok(ms.filter((m) => m !== t.rounds.at(-1)[0]).every((m) => m.track !== FINAL_TRACK.id && RACE_TRACKS.some((x) => x.id === m.track)), `${n}: normal tracks`);
   ok(t.rounds[0].every((m) => !(m.a === null && m.b === null)), `${n}: no double byes`);
-  const seen = new Set(t.rounds[0].flatMap((m) => [m.a, m.b, m.c]).filter(Boolean));
-  if (!t.threeWay) ok(seen.size === n, `${n}: everyone placed once`);
-  else {
-    const placed = [...t.rounds[0].flatMap(racersOf), ...t.rounds[1].flatMap((m) => [m.a, m.b]).filter((x) => x && !t.rounds[0].some((f) => racersOf(f).includes(x)))];
-    ok(new Set(placed).size === n && placed.length === n, `${n}: everyone placed once (three-way)`);
-    ok(t.rounds[0].every((m) => racersOf(m).length >= 2), `${n}: first-round races have 2-3 racers`);
-    ok(t.rounds.slice(1).every((ms, i) => ms.length === 2 ** (t.rounds.length - 2 - i)), `${n}: later rounds are head-to-head`);
+  if (!t.format) {
+    const seen = new Set(t.rounds[0].flatMap((m) => [m.a, m.b]).filter(Boolean));
+    ok(seen.size === n, `${n}: everyone placed once`);
+  } else {
+    const fixed = ms.flatMap((m) => racersOf(m)).filter((x) => !ms.some((f) => f.feeds && false));
+    const placed = new Set(); // racers named in a match before it was played = round entrants (winners are filled in later)
+    for (const m of ms) for (const k of ['a', 'b', 'c', 'd'].slice(0, m.size)) if (m[k] && !ms.some((f) => f.feeds?.match === m.id && f.feeds.slot === k)) placed.add(m[k]);
+    ok(placed.size === n, `${n}: everyone placed once (staged, saw ${placed.size})`);
+    const sizes = t.rounds.map((r) => r.map((m) => m.size));
+    ok(t.rounds.at(-1)[0].size === 2 && t.rounds.at(-2).every((m) => m.size === 2), `${n}: semis and final are 1v1`);
+    ok(t.rounds.flat().filter((m) => !m.bye).length <= (n >= 12 ? 16 : 12), `${n}: short tournament`);
+    if (n >= 29) console.log(`${n} racers:`, JSON.stringify(sizes), 'races:', t.rounds.flat().filter((m) => !m.bye).length);
   }
   // play it out with random results, in random order
   let guard = 0;

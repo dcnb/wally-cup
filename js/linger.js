@@ -36,10 +36,16 @@ export function createLinger({ cars, stage, say }) {
   const cfg = theme.linger;
   const fams = new Set(cars.map((c) => c.family).filter((f) => f === 'carlson' || f === 'altman'));
   // Maybe schedule a surprise linger somewhere in the middle of this race.
-  let midAt = null;
-  if (fams.size && (forced || Math.random() < cfg.midRaceChance)) midAt = 0.3 + Math.random() * 0.4;
-  if (forced === '1') midAt = 0.2;
-  let midDone = false;
+  // At most ONE linger per race, and most races have none. Decide up front: mid-race, at the finish, or not at all.
+  // (?linger=1 forces a mid-race one, ?linger=finish forces the finish one, for testing.)
+  let midAt = null, atFinish = false, used = false;
+  if (fams.size) {
+    const roll = Math.random();
+    if (forced === '1') midAt = 0.2;
+    else if (forced === 'finish') atFinish = true;
+    else if (roll < cfg.midRaceChance) midAt = 0.3 + Math.random() * 0.4;
+    else if (roll < cfg.midRaceChance + cfg.finishChance) atFinish = true;
+  }
 
   const el = document.createElement('div');
   el.className = 'linger'; el.hidden = true; el.setAttribute('role', 'alert');
@@ -57,7 +63,8 @@ export function createLinger({ cars, stage, say }) {
       if (this.t >= this.dur) this.stop(true);
     },
     start(kind, why) {
-      if (this.active) return;
+      if (this.active || used) return;
+      used = true;
       this.active = true; this.kind = kind; this.t = 0; this.spoke = 0;
       this.dur = cfg.minSeconds + Math.random() * (cfg.maxSeconds - cfg.minSeconds);
       tally[kind]++;
@@ -79,13 +86,12 @@ export function createLinger({ cars, stage, say }) {
     },
     // Called once when a racer crosses the line. Returns true if a linger starts.
     onWinner(car) {
-      if (car.family === 'carlson' || car.family === 'altman') { this.start(car.family, 'finish'); return true; }
+      if (atFinish && (car.family === 'carlson' || car.family === 'altman')) { this.start(car.family, 'finish'); return true; }
       return false;
     },
     // Called while racing. Returns the family to linger if the random mid-race moment has arrived.
     midRace(progress) {
-      if (midAt == null || midDone || progress < midAt) return null;
-      midDone = true;
+      if (midAt == null || used || progress < midAt) return null;
       const list = [...fams];
       return list[(Math.random() * list.length) | 0];
     },

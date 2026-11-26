@@ -2838,7 +2838,7 @@ const BASE_LINES = {
   ], 'win'),
   // ---- tournament ----
   roundName: (round, total) => {
-    const left = total - round; // 0 = final
+    const left = total - 1 - round; // 0 = final
     return left === 0 ? 'the Championship' : left === 1 ? 'the Semifinals' : left === 2 ? 'the Quarterfinals' : `Round ${round + 1}`;
   },
   matchup: (a, b, rn, tr) => pick([
@@ -2937,10 +2937,16 @@ function createLinger({ cars, stage, say }) {
   const cfg = theme.linger;
   const fams = new Set(cars.map((c) => c.family).filter((f) => f === 'carlson' || f === 'altman'));
   // Maybe schedule a surprise linger somewhere in the middle of this race.
-  let midAt = null;
-  if (fams.size && (forced || Math.random() < cfg.midRaceChance)) midAt = 0.3 + Math.random() * 0.4;
-  if (forced === '1') midAt = 0.2;
-  let midDone = false;
+  // At most ONE linger per race, and most races have none. Decide up front: mid-race, at the finish, or not at all.
+  // (?linger=1 forces a mid-race one, ?linger=finish forces the finish one, for testing.)
+  let midAt = null, atFinish = false, used = false;
+  if (fams.size) {
+    const roll = Math.random();
+    if (forced === '1') midAt = 0.2;
+    else if (forced === 'finish') atFinish = true;
+    else if (roll < cfg.midRaceChance) midAt = 0.3 + Math.random() * 0.4;
+    else if (roll < cfg.midRaceChance + cfg.finishChance) atFinish = true;
+  }
 
   const el = document.createElement('div');
   el.className = 'linger'; el.hidden = true; el.setAttribute('role', 'alert');
@@ -2958,7 +2964,8 @@ function createLinger({ cars, stage, say }) {
       if (this.t >= this.dur) this.stop(true);
     },
     start(kind, why) {
-      if (this.active) return;
+      if (this.active || used) return;
+      used = true;
       this.active = true; this.kind = kind; this.t = 0; this.spoke = 0;
       this.dur = cfg.minSeconds + Math.random() * (cfg.maxSeconds - cfg.minSeconds);
       tally[kind]++;
@@ -2980,13 +2987,12 @@ function createLinger({ cars, stage, say }) {
     },
     // Called once when a racer crosses the line. Returns true if a linger starts.
     onWinner(car) {
-      if (car.family === 'carlson' || car.family === 'altman') { this.start(car.family, 'finish'); return true; }
+      if (atFinish && (car.family === 'carlson' || car.family === 'altman')) { this.start(car.family, 'finish'); return true; }
       return false;
     },
     // Called while racing. Returns the family to linger if the random mid-race moment has arrived.
     midRace(progress) {
-      if (midAt == null || midDone || progress < midAt) return null;
-      midDone = true;
+      if (midAt == null || used || progress < midAt) return null;
       const list = [...fams];
       return list[(Math.random() * list.length) | 0];
     },
@@ -3241,7 +3247,7 @@ function initTournament({ show, setRaceRun, setResultRun }) {
       for (const m of ms) {
         const el = document.createElement(isReady(m) ? 'button' : 'div');
         el.className = 'match' + (isReady(m) ? ' ready' : '') + (m.bye ? ' bye' : '') + (r === t.rounds.length - 1 ? ' final' : '');
-        el.innerHTML = `<div class="trk">${r === t.rounds.length - 1 ? theme.finalIcon + ' ' : ''}${track(m.track).name}</div>${side(m, m.a)}${side(m, m.b)}${m.c !== undefined ? side(m, m.c) : ''}${isReady(m) ? '<span class="go">RACE!</span>' : ''}`;
+        el.innerHTML = `<div class="trk">${r === t.rounds.length - 1 ? theme.finalIcon + ' ' : ''}${track(m.track).name}</div>${['a', 'b', 'c', 'd'].slice(0, m.size ?? 2).map((k) => side(m, m[k])).join('')}${isReady(m) ? '<span class="go">RACE!</span>' : ''}`;
         if (isReady(m)) el.addEventListener('click', () => openModal(m));
         list.appendChild(el);
       }
@@ -3261,12 +3267,13 @@ function initTournament({ show, setRaceRun, setResultRun }) {
   function hypeText(m) {
     const names = racersOf(m).map((id) => car(id).name), a = names[0], b = names[1], tr = track(m.track).name;
     const rn = LINES.roundName(m.round, roundCount(t));
-    if (names.length === 3) {
+    if (names.length > 2) {
+      const list = `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`, word = names.length === 4 ? 'Four' : 'Three', out = names.length - 1;
       return pick([
-        `${rn}! Three racers, one spot in the next round! ${names[0]}, ${names[1]} and ${names[2]} take on ${tr}!`,
-        `A three-way showdown at ${tr}! ${names[0]}, ${names[1]} and ${names[2]}, and only the winner moves on!`,
-        `Triple trouble! ${names[0]}, ${names[1]} and ${names[2]} line up at ${tr}, and two of them are going home!`,
-      ], 'matchup3');
+        `${rn}! ${word} racers, one spot in the next round! ${list} take on ${tr}!`,
+        `A ${word.toLowerCase()}-way showdown at ${tr}! ${list}, and only the winner moves on!`,
+        `Chaos incoming! ${list} line up at ${tr}, and ${out} of them are going home!`,
+      ], 'matchupN');
     }
     return m.round === roundCount(t) - 1 ? LINES.finalHype(a, b) : LINES.matchup(a, b, rn, tr);
   }
@@ -3435,44 +3442,67 @@ function seedOrder(size) {
   return order;
 }
 
-// Three-way start (theme.threeWayStart): round 1 is a mix of 3-car (and a few 2-car) races that cuts the field
-// down to a power of two; everyone else gets a bye. Then the normal head-to-head bracket takes over.
-// Match shape is unchanged except round-1 matches may have a third car `c` and a `feeds` link to the next-round slot.
-function buildThreeWay(carIds, rng) {
+// Staged format (theme.stagedStart): short multi-car races up front, then head-to-head.
+//   Round 1: four-car races (winner advances)      Round 2: up to four races of 3 cars (or 2 / a bye)
+//   Semifinals: two 1-on-1 races                    Final: 1-on-1 on the final track
+// Racers who don't need to race a round get a bye straight to the next one. Every match has up to four slots
+// `a b c d` (only the first `size` are used), and a `feeds` link saying where its winner goes next.
+const SLOTS = ['a', 'b', 'c', 'd'];
+function buildStaged(carIds, rng) {
   const n = carIds.length;
-  let T = 2; while (T * 2 < n) T *= 2;            // largest power of two below n
-  const elim = n - T;                              // racers that must be knocked out in round 1
-  const threes = Math.floor(elim / 2), twos = elim % 2;
   const shuffled = shuffle(carIds, rng);
-  const t = { id: 't' + Date.now().toString(36) + Math.floor(rng() * 1e6).toString(36), createdAt: new Date().toISOString(), racers: [...carIds], rounds: [], champion: null, runnerUp: null, seq: 0, threeWay: true };
+  const t = { id: 't' + Date.now().toString(36) + Math.floor(rng() * 1e6).toString(36), createdAt: new Date().toISOString(), racers: [...carIds], rounds: [], champion: null, runnerUp: null, seq: 0, format: 'staged' };
   const pickTrack = () => theme.RACE_TRACKS[Math.floor(rng() * theme.RACE_TRACKS.length)].id;
-  const first = []; let k = 0;
-  for (let i = 0; i < threes + twos; i++) {
-    const size = i < threes ? 3 : 2;
-    const grp = shuffled.slice(k, k + size); k += size;
-    first.push({ id: `r0m${i}`, round: 0, index: i, a: grp[0], b: grp[1], ...(size === 3 ? { c: grp[2] } : {}), track: pickTrack(), winner: null, standings: null, playedAt: null, order: null, bye: false });
-  }
-  // entrants for the head-to-head bracket: each first-round race (winner pending) or a bye racer
-  const entrants = shuffle([...first.map((m) => ({ m })), ...shuffled.slice(k).map((id) => ({ id }))], rng);
-  const rounds = Math.log2(T);
-  t.rounds.push(first);
-  for (let r = 1; r <= rounds; r++) {
-    const count = T / 2 ** r, isFinal = r === rounds, ms = [];
-    for (let i = 0; i < count; i++) {
-      ms.push({ id: `r${r}m${i}`, round: r, index: i, a: null, b: null, track: isFinal ? theme.FINAL_TRACK.id : pickTrack(), winner: null, standings: null, playedAt: null, order: null, bye: false });
+  const mk = (r, i, size, track) => ({ id: `r${r}m${i}`, round: r, index: i, size, a: null, b: null, ...(size > 2 ? { c: null } : {}), ...(size > 3 ? { d: null } : {}), track, winner: null, standings: null, playedAt: null, order: null, bye: false });
+  // how many four-car races until at most 12 racers are left (4 races of up to 3)
+  const g1 = n > 12 ? Math.ceil((n - 12) / 3) : 0;
+  const entering = n - 3 * g1;                      // racers (and pending winners) entering round 2
+  const pending = [];                               // round-1 matches whose winners are still to come
+  let k = 0;
+  const rounds = [];
+  if (g1) {
+    const r1 = [];
+    for (let i = 0; i < g1; i++) {
+      const m = mk(0, i, 4, pickTrack());
+      SLOTS.forEach((sl) => { m[sl] = shuffled[k++]; });
+      r1.push(m); pending.push(m);
     }
-    t.rounds.push(ms);
+    rounds.push(r1);
   }
-  entrants.forEach((e, i) => {
-    const slot = t.rounds[1][Math.floor(i / 2)], key = i % 2 ? 'b' : 'a';
-    if (e.m) e.m.feeds = { match: slot.id, slot: key }; else slot[key] = e.id;
+  const r2n = rounds.length;
+  const entrants = shuffle([...pending.map((m) => ({ m })), ...shuffled.slice(k).map((id) => ({ id }))], rng);
+  if (entrants.length > 4) { // round 2: four races, entrants dealt out evenly
+    const groups = [0, 1, 2, 3].map(() => []);
+    entrants.forEach((e, i) => groups[i % 4].push(e));
+    const r2 = groups.map((grp, i) => {
+      const m = mk(r2n, i, grp.length, pickTrack());
+      grp.forEach((e, j) => { if (e.m) e.m.feeds = { match: m.id, slot: SLOTS[j] }; else m[SLOTS[j]] = e.id; });
+      return m;
+    });
+    rounds.push(r2);
+  }
+  const winnersOf = rounds.length ? rounds[rounds.length - 1] : null;
+  // semifinals + final get head-to-head slots
+  const semiEntrants = winnersOf ? winnersOf.map((m) => ({ m })) : entrants;
+  const sr = rounds.length;
+  const semis = [0, 1].map((i) => mk(sr, i, 2, pickTrack()));
+  const fin = mk(sr + 1, 0, 2, theme.FINAL_TRACK.id);
+  semiEntrants.forEach((e, i) => {
+    const sm = semis[Math.floor(i / 2)], sl = SLOTS[i % 2];
+    if (e.m) e.m.feeds = { match: sm.id, slot: sl }; else sm[sl] = e.id;
   });
+  semis.forEach((m, i) => { m.feeds = { match: fin.id, slot: SLOTS[i] }; });
+  rounds.push(semis, [fin]);
+  t.rounds = rounds;
+  // a one-slot match is a bye: that racer walks straight through
+  for (const m of rounds.flat()) if (m.size === 1 && m.a) autoAdvance(t, m);
+  void entering;
   return t;
 }
 
 function buildBracket(carIds, rng = Math.random) {
   if (carIds.length < 2) throw new Error('Need at least 2 racers');
-  if (theme.threeWayStart && carIds.length >= 3) return buildThreeWay(carIds, rng);
+  if (theme.stagedStart && carIds.length >= 4) return buildStaged(carIds, rng);
   let size = 2;
   while (size < carIds.length) size *= 2;
   const rounds = Math.log2(size);
@@ -3510,7 +3540,7 @@ function buildBracket(carIds, rng = Math.random) {
 
 function autoAdvance(t, m) {
   m.bye = true;
-  m.winner = m.a ?? m.b;
+  m.winner = m.a ?? m.b ?? m.c ?? m.d;
   m.playedAt = null;
   advance(t, m);
 }
@@ -3523,8 +3553,9 @@ function advance(t, m) {
   // a later-round match can also be a bye only if both feeders were byes; impossible with correct seeding
 }
 
-const isReady = (m) => !!m.a && !!m.b && (m.c === undefined || !!m.c) && !m.winner;
-const racersOf = (m) => [m.a, m.b, m.c].filter(Boolean);
+const slotsOf = (m) => SLOTS.slice(0, m.size ?? 2).map((k) => m[k]);
+const isReady = (m) => !m.winner && !m.bye && slotsOf(m).every(Boolean);
+const racersOf = (m) => slotsOf(m).filter(Boolean);
 const allMatches = (t) => t.rounds.flat();
 const findMatch = (t, id) => allMatches(t).find((m) => m.id === id);
 const nextReady = (t) => allMatches(t).find(isReady) || null;
@@ -3552,26 +3583,42 @@ function validateTournament(t, carIds, trackIds) {
   if (!Array.isArray(t.rounds) || !t.rounds.length || t.rounds.some((r) => !Array.isArray(r))) bad('Missing bracket rounds.');
   const rounds = t.rounds.length;
   const okCar = (x) => x === null || carIds.includes(x);
-  const tw = t.threeWay === true;
-  if (tw && rounds < 2) bad('Bracket is too short.');
-  t.rounds.forEach((ms, r) => {
-    if (tw && r === 0) { if (!ms.length || ms.length > 64) bad('Round 1 has the wrong number of matches.'); }
-    else if (ms.length !== 2 ** (rounds - 1 - r)) bad(`Round ${r + 1} has the wrong number of matches.`);
+  const staged = t.format === 'staged';
+  if (staged) {
+    if (rounds < 2 || rounds > 4) bad('Bracket has the wrong number of rounds.');
+    const all = t.rounds.flat(), byId = new Map(all.map((m) => [m.id, m]));
+    const fed = new Set();
+    t.rounds.forEach((ms, r) => {
+      if (!ms.length || ms.length > 64) bad(`Round ${r + 1} has the wrong number of matches.`);
+      ms.forEach((m, i) => {
+        if (!m || m.round !== r || m.index !== i || m.id !== `r${r}m${i}`) bad(`Match ${r + 1}.${i + 1} is malformed.`);
+        if (!Number.isInteger(m.size) || m.size < 1 || m.size > 4) bad(`Match ${r + 1}.${i + 1} has a bad size.`);
+        if (!trackIds.includes(m.track)) bad(`Unknown track "${m.track}".`);
+        if (SLOTS.some((k) => !okCar(m[k] ?? null)) || !okCar(m.winner ?? null)) bad(`Unknown racer in match ${r + 1}.${i + 1}.`);
+        if (m.winner && !SLOTS.slice(0, m.size).some((k) => m[k] === m.winner)) bad(`Winner isn't in match ${r + 1}.${i + 1}.`);
+        if (r === rounds - 1) { if (m.feeds) bad('The final cannot feed another match.'); }
+        else {
+          const tgt = byId.get(m.feeds?.match), si = SLOTS.indexOf(m.feeds?.slot);
+          if (!tgt || tgt.round !== r + 1 || si < 0 || si >= tgt.size) bad(`Match ${r + 1}.${i + 1} feeds nowhere.`);
+          const key = tgt.id + m.feeds.slot;
+          if (fed.has(key)) bad(`Two matches feed the same slot.`);
+          fed.add(key);
+        }
+      });
+    });
+    // every slot is either a fixed racer or exactly the winner of its feeder
+    for (const m of all) for (const k of SLOTS.slice(0, m.size)) {
+      const feeder = all.find((x) => x.feeds && x.feeds.match === m.id && x.feeds.slot === k);
+      if (feeder ? (m[k] ?? null) !== (feeder.winner ?? null) : !m[k]) bad(`Match ${m.round + 1}.${m.index + 1} doesn't match its feeder matches.`);
+    }
+  } else t.rounds.forEach((ms, r) => {
+    if (ms.length !== 2 ** (rounds - 1 - r)) bad(`Round ${r + 1} has the wrong number of matches.`);
     ms.forEach((m, i) => {
       if (!m || m.round !== r || m.index !== i || m.id !== `r${r}m${i}`) bad(`Match ${r + 1}.${i + 1} is malformed.`);
       if (!trackIds.includes(m.track)) bad(`Unknown track "${m.track}".`);
-      if (!okCar(m.a) || !okCar(m.b) || !okCar(m.winner ?? null) || (m.c !== undefined && !okCar(m.c))) bad(`Unknown racer in match ${r + 1}.${i + 1}.`);
-      if (m.winner && m.winner !== m.a && m.winner !== m.b && m.winner !== m.c) bad(`Winner isn't in match ${r + 1}.${i + 1}.`);
-      if (tw && r === 0) {
-        const f = m.feeds, tgt = t.rounds[1].find((x) => x.id === f?.match);
-        if (!tgt || (f.slot !== 'a' && f.slot !== 'b')) bad(`Match 1.${i + 1} feeds nowhere.`);
-        if (!m.a || !m.b) bad(`Match 1.${i + 1} is missing racers.`);
-      } else if (tw && r === 1) {
-        for (const key of ['a', 'b']) {
-          const feeder = t.rounds[0].find((x) => x.feeds && x.feeds.match === m.id && x.feeds.slot === key);
-          if (feeder ? (m[key] ?? null) !== (feeder.winner ?? null) : !m[key]) bad(`Match 2.${i + 1} doesn't match its feeder matches.`);
-        }
-      } else if (r > 0) { // racers must be exactly the winners of the two feeder matches
+      if (!okCar(m.a) || !okCar(m.b) || !okCar(m.winner ?? null)) bad(`Unknown racer in match ${r + 1}.${i + 1}.`);
+      if (m.winner && m.winner !== m.a && m.winner !== m.b) bad(`Winner isn't in match ${r + 1}.${i + 1}.`);
+      if (r > 0) { // racers must be exactly the winners of the two feeder matches
         const [fa, fb] = t.rounds[r - 1].slice(i * 2, i * 2 + 2);
         if ((m.a ?? null) !== (fa.winner ?? null) || (m.b ?? null) !== (fb.winner ?? null)) bad(`Match ${r + 1}.${i + 1} doesn't match its feeder matches.`);
       }
@@ -3581,7 +3628,7 @@ function validateTournament(t, carIds, trackIds) {
   if ((t.champion ?? null) !== (fin.winner ?? null)) bad('Champion does not match the final.');
   return {
     ...t,
-    ...(tw ? { threeWay: true } : {}),
+    ...(staged ? { format: 'staged' } : {}),
     racers: Array.isArray(t.racers) ? t.racers.filter((x) => carIds.includes(x)) : [],
     champion: t.champion ?? null,
     runnerUp: t.runnerUp ?? null,

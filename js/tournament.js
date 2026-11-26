@@ -58,7 +58,7 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
       for (const m of ms) {
         const el = document.createElement(isReady(m) ? 'button' : 'div');
         el.className = 'match' + (isReady(m) ? ' ready' : '') + (m.bye ? ' bye' : '') + (r === t.rounds.length - 1 ? ' final' : '');
-        el.innerHTML = `<div class="trk">${r === t.rounds.length - 1 ? theme.finalIcon + ' ' : ''}${track(m.track).name}</div>${side(m, m.a)}${side(m, m.b)}${m.c !== undefined ? side(m, m.c) : ''}${isReady(m) ? '<span class="go">RACE!</span>' : ''}`;
+        el.innerHTML = `<div class="trk">${r === t.rounds.length - 1 ? theme.finalIcon + ' ' : ''}${track(m.track).name}</div>${['a', 'b', 'c', 'd'].slice(0, m.size ?? 2).map((k) => side(m, m[k])).join('')}${isReady(m) ? '<span class="go">RACE!</span>' : ''}`;
         if (isReady(m)) el.addEventListener('click', () => openModal(m));
         list.appendChild(el);
       }
@@ -78,12 +78,13 @@ export function initTournament({ show, setRaceRun, setResultRun }) {
   function hypeText(m) {
     const names = racersOf(m).map((id) => car(id).name), a = names[0], b = names[1], tr = track(m.track).name;
     const rn = LINES.roundName(m.round, roundCount(t));
-    if (names.length === 3) {
+    if (names.length > 2) {
+      const list = `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`, word = names.length === 4 ? 'Four' : 'Three', out = names.length - 1;
       return pick([
-        `${rn}! Three racers, one spot in the next round! ${names[0]}, ${names[1]} and ${names[2]} take on ${tr}!`,
-        `A three-way showdown at ${tr}! ${names[0]}, ${names[1]} and ${names[2]}, and only the winner moves on!`,
-        `Triple trouble! ${names[0]}, ${names[1]} and ${names[2]} line up at ${tr}, and two of them are going home!`,
-      ], 'matchup3');
+        `${rn}! ${word} racers, one spot in the next round! ${list} take on ${tr}!`,
+        `A ${word.toLowerCase()}-way showdown at ${tr}! ${list}, and only the winner moves on!`,
+        `Chaos incoming! ${list} line up at ${tr}, and ${out} of them are going home!`,
+      ], 'matchupN');
     }
     return m.round === roundCount(t) - 1 ? LINES.finalHype(a, b) : LINES.matchup(a, b, rn, tr);
   }
